@@ -25,8 +25,10 @@ public strictfp class RobotPlayer {
     static Direction currentDir = randomDirection();
 
     static ArrayList<MapLocation> enemyHQPossibilities = new ArrayList<MapLocation>(3);
+    static MapLocation targetLoc = null;
 
     static boolean hasBuiltMiner = false;
+    static boolean hasBuiltDesignSchool = false;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -107,6 +109,13 @@ public strictfp class RobotPlayer {
     }
 
     static void runMiner() throws GameActionException {
+        if (!hasBuiltDesignSchool)
+            minerAttacc();
+        else
+            minerGetSoup();
+    }
+
+    static void minerAttacc() throws GameActionException {
         // try to find enemy HQ
         RobotInfo [] robots = rc.senseNearbyRobots();
         for (RobotInfo robot : robots) {
@@ -118,9 +127,11 @@ public strictfp class RobotPlayer {
         }
         // if adjacent to enemy HQ, build a design studio and then do nothing else
         if (rc.getLocation().isAdjacentTo(enemyHQ)) {
-            if (rc.getTeamSoup() > 155) {
-                tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight());
-                tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft());
+            if (rc.getTeamSoup() > 150) {
+                if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight()))
+                    hasBuiltDesignSchool = true;
+                if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft()))
+                    hasBuiltDesignSchool = true;
             }
             return;
         }
@@ -136,6 +147,50 @@ public strictfp class RobotPlayer {
           System.out.println("I moved!");
         else
           currentDir = randomDirection();
+    }
+
+    static void minerGetSoup() throws GameActionException {
+        System.out.println("Design school is built; now just search for soup");
+        System.out.println("Current soup carrying: " + rc.getSoupCarrying());
+        for (Direction dir : directions)
+        {
+            tryMine(dir);
+            tryRefine(dir);
+        }
+
+        // if reached home, set target loc back to null
+        if (rc.getLocation().isAdjacentTo(hqLoc) && hqLoc.equals(targetLoc))
+            targetLoc = null;
+        // if target loc no longer has soup, set target loc to null
+        if (targetLoc != null && !(targetLoc.equals(hqLoc)) && rc.canSenseLocation(targetLoc)
+            && rc.senseSoup(targetLoc) == 0)
+            targetLoc = null;
+
+        if (rc.getSoupCarrying() == RobotType.MINER.soupLimit){
+            System.out.println("Has enough soup; going home");
+            targetLoc = hqLoc;
+        }
+        if (targetLoc != null){
+            goTo(targetLoc);
+            return;
+        }
+        // TODO: try to sense soup at all visible locations
+        MapLocation myLoc = rc.getLocation();
+        for (int x = -5; x <= 5; x ++){
+            for (int y = -5; y <= 5; y ++) {
+                MapLocation possibleLoc = myLoc.translate(x,y);
+                System.out.println("Is there soup at " + possibleLoc + "?");
+                if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
+                    // go to that location and break out of this loop
+                    System.out.println("Found soup; now going to " + possibleLoc);
+                    targetLoc = possibleLoc;
+                    goTo(targetLoc);
+                    return;
+                }
+            }
+        }
+        System.out.println("Couldn't find soup; going home");
+        goTo(hqLoc);
     }
 
     static void runRefinery() throws GameActionException {
@@ -301,8 +356,10 @@ public strictfp class RobotPlayer {
      * @return true if a move was performed
      * @throws GameActionException
      */
+    // modified to make sure that we don't dump soup in enemy refinery
     static boolean tryRefine(Direction dir) throws GameActionException {
-        if (rc.isReady() && rc.canDepositSoup(dir)) {
+        if (rc.isReady() && rc.canDepositSoup(dir) 
+            && rc.senseRobotAtLocation(rc.getLocation().add(dir)).getTeam() == rc.getTeam()) {
             rc.depositSoup(dir, rc.getSoupCarrying());
             return true;
         } else return false;
