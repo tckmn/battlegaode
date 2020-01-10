@@ -1,5 +1,6 @@
 package attacc;
 import battlecode.common.*;
+import java.util.ArrayList;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
@@ -18,9 +19,14 @@ public strictfp class RobotPlayer {
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
     static int turnCount;
+    static MapLocation hqLoc;
 
     static MapLocation enemyHQ = new MapLocation(-10,-10);
     static Direction currentDir = randomDirection();
+
+    static ArrayList<MapLocation> enemyHQPossibilities = new ArrayList<MapLocation>(3);
+
+    static boolean hasBuiltMiner = false;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -43,6 +49,8 @@ public strictfp class RobotPlayer {
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
                 System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
+                //System.out.println("Cooldown left: " + rc.getCooldownTurns());
+                findHQ();
                 switch (rc.getType()) {
                     case HQ:                 runHQ();                break;
                     case MINER:              runMiner();             break;
@@ -65,10 +73,37 @@ public strictfp class RobotPlayer {
         }
     }
 
+    static void findHQ() throws GameActionException {
+        if (hqLoc == null) {
+            // search surroundings for HQ
+            RobotInfo[] robots = rc.senseNearbyRobots();
+            for (RobotInfo robot : robots) {
+                if (robot.type == RobotType.HQ && robot.team == rc.getTeam()) {
+                    hqLoc = robot.location;
+                }
+            }
+            // if it has found HQ, then list possible enemy HQ locations
+            if (hqLoc != null) {
+                int x, y, X, Y;
+                x = hqLoc.x;
+                y = hqLoc.y;
+                X = rc.getMapWidth()-1; // correct for 0 indexing of map
+                Y = rc.getMapHeight()-1;
+                enemyHQPossibilities.add(new MapLocation(X-x,y));
+                enemyHQPossibilities.add(new MapLocation(X-x,Y-y));
+                enemyHQPossibilities.add(new MapLocation(x,Y-y));
+            }
+
+            // TODO later: use blockchain to communicate
+            // idea: HQ broadcasts code and location on turn 1, all units check for the special code
+        }
+    }
+
     static void runHQ() throws GameActionException {
-        if (rc.getTeamSoup() > 160)
+        if (rc.getTeamSoup() >= 60 && !hasBuiltMiner)
             for (Direction dir : directions)
-                tryBuild(RobotType.MINER, dir);
+                if(tryBuild(RobotType.MINER, dir))
+                    hasBuiltMiner = true;
     }
 
     static void runMiner() throws GameActionException {
@@ -82,11 +117,20 @@ public strictfp class RobotPlayer {
             }
         }
         // if adjacent to enemy HQ, build a design studio and then do nothing else
-        if (rc.getLocation().isAdjacentTo(enemyHQ) && rc.getTeamSoup() > 155) {
-          tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight());
-          tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft());
-          return;
+        if (rc.getLocation().isAdjacentTo(enemyHQ)) {
+            if (rc.getTeamSoup() > 155) {
+                tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight());
+                tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft());
+            }
+            return;
         }
+
+        // otherwise, try to go to the next possible enemy HQ location
+        if (!(rc.getLocation().equals(enemyHQPossibilities.get(0))))
+            goTo(enemyHQPossibilities.get(0));
+        // if already at enemy HQ location, then there is nothing there, so we have the wrong spot
+        else
+            enemyHQPossibilities.remove(0);
 
         if (tryMove(currentDir))
           System.out.println("I moved!");
@@ -134,10 +178,21 @@ public strictfp class RobotPlayer {
             }
         }
         // pile on the dirt
-        if (rc.canDepositDirt(currentDir))
+        if (rc.canDepositDirt(currentDir)){
           rc.depositDirt(currentDir);
-        if (rc.canDigDirt(currentDir.opposite()))
+          System.out.println("I deposited dirt!");
+        }
+        if (rc.canDigDirt(currentDir.opposite())) {
           rc.digDirt(currentDir.opposite());
+          System.out.println("I dug dirt!");
+        } else {
+            System.out.println("Could not dig dirt from direction " + currentDir.opposite());
+        }
+        if (rc.canDigDirt(currentDir.opposite().rotateLeft()))
+          rc.digDirt(currentDir.opposite().rotateLeft());
+        if (rc.canDigDirt(currentDir.opposite().rotateRight()))
+          rc.digDirt(currentDir.opposite().rotateRight());    
+        
     }
 
     static void runDeliveryDrone() throws GameActionException {
@@ -264,5 +319,20 @@ public strictfp class RobotPlayer {
                 rc.submitTransaction(message, 10);
         }
         // System.out.println(rc.getRoundMessages(turnCount-1));
+    }
+
+    // tries to move in the general direction of dir
+    static boolean goTo(Direction dir) throws GameActionException {
+        Direction[] toTry = {dir, dir.rotateLeft(), dir.rotateRight(), dir.rotateLeft().rotateLeft(), dir.rotateRight().rotateRight()};
+        for (Direction d : toTry){
+            if(tryMove(d))
+                return true;
+        }
+        return false;
+    }
+
+    // navigate towards a particular location
+    static boolean goTo(MapLocation destination) throws GameActionException {
+        return goTo(rc.getLocation().directionTo(destination));
     }
 }
