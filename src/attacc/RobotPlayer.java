@@ -342,11 +342,15 @@ public strictfp class RobotPlayer {
           rc.depositDirt(currentDir);
           System.out.println("I deposited dirt!");
         }
-        if (rc.canDigDirt(currentDir.opposite())) {
+        // TODO: Would it be better to dig dirt from current location to mess up walls?
+        if (rc.canDigDirt(Direction.CENTER)) {
+          rc.digDirt(Direction.CENTER);
+          System.out.println("I dug dirt from my own location!");
+        } else if (rc.canDigDirt(currentDir.opposite())) {
           rc.digDirt(currentDir.opposite());
-          System.out.println("I dug dirt!");
+          System.out.println("I dug dirt from " + currentDir.opposite() + "!");
         } else {
-            System.out.println("Could not dig dirt from direction " + currentDir.opposite());
+            System.out.println("Could not dig dirt from current location or direction " + currentDir.opposite());
         }
         if (rc.canDigDirt(currentDir.opposite().rotateLeft()))
           rc.digDirt(currentDir.opposite().rotateLeft());
@@ -510,7 +514,7 @@ public strictfp class RobotPlayer {
         // System.out.println(rc.getRoundMessages(turnCount-1));
     }
 
-    // tries to move in the general direction of dir
+    // tries to move in the general direction of dir (from lecturePlayer)
     static boolean goTo(Direction dir) throws GameActionException {
         Direction[] toTry = {dir, dir.rotateLeft(), dir.rotateRight(), dir.rotateLeft().rotateLeft(), dir.rotateRight().rotateRight()};
         for (Direction d : toTry){
