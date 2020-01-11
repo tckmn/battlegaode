@@ -575,6 +575,10 @@ public strictfp class RobotPlayer {
             // otherwise dig some dirt
             if (rc.canDigDirt(dirToHQ.opposite()))
                 rc.digDirt(dirToHQ.opposite());
+            if (rc.canDigDirt(dirToHQ.opposite().rotateRight()))
+                rc.digDirt(dirToHQ.opposite().rotateRight());
+            if (rc.canDigDirt(dirToHQ.opposite().rotateLeft()))
+                rc.digDirt(dirToHQ.opposite().rotateLeft());
         }
     }
 
