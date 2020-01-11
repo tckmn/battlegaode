@@ -19,6 +19,7 @@ public strictfp class RobotPlayer {
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
     static int hqMessageNumber = 18527548;
+    static int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
 
     static int turnCount;
     static MapLocation hqLoc;
@@ -36,13 +37,16 @@ public strictfp class RobotPlayer {
     static boolean hasTransportedMiner = false;
 
     static boolean firstMiner = false;
+    static boolean secondMiner = false;
 
     static MapLocation [] recentLocs = new MapLocation[5];
     static int [] recentSoup = new int[5];
     static boolean isStuck = false;
+    static boolean landscaperInPlace = false;
 
     static MapLocation lastSoupMined = null;
 
+    
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * If this method returns, the robot dies!
@@ -68,6 +72,10 @@ public strictfp class RobotPlayer {
                 if (rc.getRoundNum() == 2) {
                     firstMiner = true;
                     System.out.println("This is the first miner!");
+                }
+                if (rc.getRoundNum() == 3 && !firstMiner) {
+                    secondMiner = true;
+                    System.out.println("This is the second miner!");
                 }
                 //System.out.println("Cooldown left: " + rc.getCooldownTurns());
                 if (hqLoc == null) findHQ();
@@ -163,7 +171,9 @@ public strictfp class RobotPlayer {
             if (rc.canSubmitTransaction(message, 1))
                 rc.submitTransaction(message, 1);
         }
-        if (rc.getTeamSoup() >= 60 && minersBuilt < 3)
+        // build only 3 miners (5 if the game goes on too long)
+        // TODO: For all miners except the first, spawn in direction of nearest soup
+        if (rc.getTeamSoup() >= 60 && (minersBuilt < 3 || (rc.getRoundNum() > proteccRound && minersBuilt < 5)))
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir))
                     minersBuilt ++;
@@ -192,6 +202,8 @@ public strictfp class RobotPlayer {
             System.out.println("Woe is I; I'm stuck!");
         if (firstMiner && !hasBuiltDesignSchool)
             minerAttacc();
+        else if (secondMiner && rc.getRoundNum() >= proteccRound && !hasBuiltDesignSchool)
+            minerProtecc();
         else
             minerGetSoup();
     }
@@ -241,9 +253,35 @@ public strictfp class RobotPlayer {
           currentDir = randomDirection();
     }
 
+    static void minerProtecc() throws GameActionException {
+        if(rc.getLocation().equals(hqLoc.translate(0,-4)))
+            if(tryBuild(RobotType.DESIGN_SCHOOL, Direction.NORTH))
+                hasBuiltDesignSchool = true;
+        goTo(rc.getLocation().directionTo(hqLoc.translate(0,-4)));
+    }
+
     static void minerGetSoup() throws GameActionException {
         System.out.println("Design school is built; now just search for soup");
         System.out.println("Current soup carrying: " + rc.getSoupCarrying());
+        // if adjacent to HQ and many landscapers nearby, get away from HQ so landscapers can move in
+        // move into water if necessary to get out of the way
+        if (rc.getRoundNum() > proteccRound && rc.getLocation().distanceSquaredTo(hqLoc) <= 8) {
+            RobotInfo [] nearbyBots = rc.senseNearbyRobots();
+            int landscaperCount = 0;
+            for (RobotInfo robot : nearbyBots)
+                if (robot.type == RobotType.LANDSCAPER && robot.getTeam() == rc.getTeam())
+                    landscaperCount ++;
+            if (landscaperCount >= 8) {
+                Direction dir = rc.getLocation().directionTo(hqLoc).opposite();
+                if (rc.canMove(dir))
+                    rc.move(dir);
+                if (rc.canMove(dir.rotateLeft()))
+                    rc.move(dir.rotateLeft());
+                if (rc.canMove(dir.rotateRight()))
+                    rc.move(dir.rotateRight());
+            }
+        }
+
         for (Direction dir : directions)
         {
             tryMine(dir);
@@ -262,9 +300,14 @@ public strictfp class RobotPlayer {
             System.out.println("Has enough soup; going home");
             targetLoc = hqLoc;
         }
-        // if stuck, go home
-        if (isStuck)
-            targetLoc = hqLoc;
+        // if stuck, go home, unless already at home
+        if (isStuck){
+            if (rc.getLocation().isAdjacentTo(hqLoc))
+                targetLoc = null;
+            else
+                targetLoc = hqLoc;
+        }
+
 
         if (targetLoc != null){
             goTo(targetLoc);
@@ -289,13 +332,13 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-        // if it can't find soup, go to last location where it found soup (if it exists) or home
+        // if it can't find soup, go to last location where it found soup (if it exists) or move randomly
         if (lastSoupMined != null) {
             System.out.println("Going to last soup mined");
             goTo(lastSoupMined);
         } else {
-            System.out.println("Couldn't find soup; going home");
-            goTo(hqLoc);
+            System.out.println("Couldn't find soup; moving randomly");
+            tryMove();
         }
     }
 
@@ -308,19 +351,24 @@ public strictfp class RobotPlayer {
     }
 
     static void runDesignSchool() throws GameActionException {
+        currentDir = rc.getLocation().directionTo(hqLoc); // for defensive design school, gets overridden on offense
         RobotInfo [] robots = rc.senseNearbyRobots();
+
         for (RobotInfo robot : robots) {
             if (robot.type == RobotType.HQ && robot.team != rc.getTeam()) {
                 enemyHQ = robot.location;
                 currentDir = rc.getLocation().directionTo(robot.location);
+
                 System.out.println("Found enemy HQ!");
             }
         }
+
         tryBuild(RobotType.LANDSCAPER, currentDir);
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight().rotateRight());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft().rotateLeft());
+
     }
 
     static void runFulfillmentCenter() throws GameActionException {
@@ -340,6 +388,14 @@ public strictfp class RobotPlayer {
     }
 
     static void runLandscaper() throws GameActionException {
+        // if near home base, this is defense; otherwise this is attack
+        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 36)
+            runLandscaperProtecc();
+        else
+            runLandscaperAttacc();
+    }
+
+    static void runLandscaperAttacc() throws GameActionException {
         // find enemy HQ
         RobotInfo [] robots = rc.senseNearbyRobots();
         for (RobotInfo robot : robots) {
@@ -369,6 +425,63 @@ public strictfp class RobotPlayer {
         if (rc.canDigDirt(currentDir.opposite().rotateRight()))
           rc.digDirt(currentDir.opposite().rotateRight());    
         
+    }
+
+    static void runLandscaperProtecc() throws GameActionException {
+        ArrayList<MapLocation> wallLocations = new ArrayList<MapLocation>(8);
+            for (Direction dir : directions)
+                wallLocations.add(hqLoc.add(dir));
+        
+        // now try to see if any are occupied by landscapers already
+        for (int counter = wallLocations.size() - 1; counter >= 0; counter --){
+            MapLocation loc = wallLocations.get(counter);
+            if (rc.canSenseLocation(loc)){
+                RobotInfo robot = rc.senseRobotAtLocation(loc);
+                if (robot != null) {
+                    if (robot.getID() != rc.getID() && robot.getType() == RobotType.LANDSCAPER)
+                        wallLocations.remove(counter);
+                }
+            }
+        }
+        System.out.println(wallLocations.size() + " locations around HQ not occupied by other landscapers!");
+        MapLocation currentLoc = rc.getLocation();
+        // try to walk to first unoccupied location in list (unless already there)
+        if (wallLocations.size() > 0) {
+            if (wallLocations.get(0).equals(currentLoc))
+                landscaperInPlace = true;
+            else
+                goTo(wallLocations.get(0));
+        } else {
+            // try to walk to north side of HQ
+            if (currentLoc.translate(0,1).isAdjacentTo(hqLoc))
+                tryMove(Direction.NORTH);
+            if (currentLoc.translate(1,1).isAdjacentTo(hqLoc))
+                tryMove(Direction.NORTHEAST);
+            if (currentLoc.translate(-1,1).isAdjacentTo(hqLoc))
+                tryMove(Direction.NORTHWEST);
+
+            // if still not adjacent to HQ, try to move in random direction
+            if (!currentLoc.isAdjacentTo(hqLoc)) {
+                tryMove(randomDirection());
+                return;
+            }
+        }
+
+        if (currentLoc.isAdjacentTo(hqLoc)) {
+            // if HQ has dirt on it, remove dirt
+            Direction dirToHQ = currentLoc.directionTo(hqLoc);
+            if (rc.canDigDirt(dirToHQ))
+                rc.digDirt(dirToHQ);
+            // TODO: second-best thing: put dirt on enemy building in range
+            if (landscaperInPlace) {
+                // build wall
+                if (rc.canDepositDirt(Direction.CENTER))
+                    rc.depositDirt(Direction.CENTER);
+                // finally, dig dirt from direction opposite HQ
+                if (rc.canDigDirt(dirToHQ.opposite()))
+                    rc.digDirt(dirToHQ.opposite());
+            }
+        }
     }
 
     static void runDeliveryDrone() throws GameActionException {
