@@ -171,7 +171,7 @@ public strictfp class RobotPlayer {
         recentSoup[rc.getRoundNum() % 5] = rc.getSoupCarrying();
         recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
         // can't move for first 10 turns anyway, so don't check until then
-        if (turnCount > 10) {
+        if (turnCount > 15) {
             // if soup is stuck at the same amount and >= 3 locations in recentLocs match current one
             // then robot is stuck
             int locationMatches = 0;
@@ -208,7 +208,7 @@ public strictfp class RobotPlayer {
         }
         // if adjacent to enemy HQ, build a design studio and then do nothing else
         if (rc.getLocation().isAdjacentTo(enemyHQ)) {
-            if (rc.getTeamSoup() > 150) {
+            if (rc.getTeamSoup() >= 150) {
                 if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight()))
                     hasBuiltDesignSchool = true;
                 if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft()))
@@ -522,6 +522,7 @@ public strictfp class RobotPlayer {
 
     // navigate towards a particular location
     static boolean goTo(MapLocation destination) throws GameActionException {
+        System.out.println("Trying to go to " + destination);
         return goTo(rc.getLocation().directionTo(destination));
     }
 }

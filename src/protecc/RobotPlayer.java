@@ -10,7 +10,7 @@ public strictfp class RobotPlayer {
 
     static int turnCount;
 
-    static int hqMessageNumber = 18527548;
+    static int hqMessageNumber = 18527549;
 
     static int maxMiners = 10;
     static int currentMiners = 0;
