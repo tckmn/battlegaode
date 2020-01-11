@@ -20,6 +20,7 @@ public strictfp class RobotPlayer {
 
     static int hqMessageNumber = 18527548;
     static int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
+    static int emergencyProteccRound = 500; // build entire wall, not just in square landscaper currently is
 
     static int turnCount;
     static MapLocation hqLoc;
@@ -389,8 +390,12 @@ public strictfp class RobotPlayer {
 
     static void runLandscaper() throws GameActionException {
         // if near home base, this is defense; otherwise this is attack
-        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 36)
-            runLandscaperProtecc();
+        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 36) {
+            if (rc.getRoundNum() < emergencyProteccRound)
+                runLandscaperProtecc();
+            else
+                runLandscaperEmergencyProtecc();
+        }
         else
             runLandscaperAttacc();
     }
@@ -481,6 +486,46 @@ public strictfp class RobotPlayer {
                 if (rc.canDigDirt(dirToHQ.opposite()))
                     rc.digDirt(dirToHQ.opposite());
             }
+        }
+    }
+
+    static void runLandscaperEmergencyProtecc() throws GameActionException {
+        MapLocation currentLoc = rc.getLocation();
+        Direction dirToHQ = currentLoc.directionTo(hqLoc);
+
+        // get adjacent tiles that are also adjacent to HQ (but not HQ itself)
+        ArrayList<MapLocation> candidateTiles = new ArrayList<MapLocation>(8);
+        for (Direction dir : directions) {
+            MapLocation loc = currentLoc.add(dir);
+            if (loc.isAdjacentTo(hqLoc) && !loc.equals(hqLoc))
+                candidateTiles.add(loc);
+        }
+        // if HQ is covered in dirt, removing it is highest priority
+        if (currentLoc.isAdjacentTo(hqLoc) && rc.canDigDirt(dirToHQ))
+            rc.digDirt(dirToHQ);
+
+        // see which of the locations has the smallest amount of dirt on it (so we can put dirt there)
+        int minDirt = Integer.MAX_VALUE;
+        MapLocation minDirtLocation = null;
+        for (MapLocation loc : candidateTiles) {
+            if (rc.senseElevation(loc) < minDirt) {
+                minDirtLocation = loc;
+                minDirt = rc.senseElevation(loc);
+            }
+        }
+
+        // if this doesn't find anything, go to the normal protection routine
+
+        if (minDirtLocation == null) {
+            runLandscaperProtecc();
+        } else {
+            Direction dir = currentLoc.directionTo(minDirtLocation);
+            if (rc.canDepositDirt(dir))
+                rc.depositDirt(dir);
+
+            // otherwise dig some dirt
+            if (rc.canDigDirt(dirToHQ.opposite()))
+                rc.digDirt(dirToHQ.opposite());
         }
     }
 
@@ -642,7 +687,15 @@ public strictfp class RobotPlayer {
 
     // tries to move in the general direction of dir (from lecturePlayer)
     static boolean goTo(Direction dir) throws GameActionException {
-        Direction[] toTry = {dir, dir.rotateLeft(), dir.rotateRight(), dir.rotateLeft().rotateLeft(), dir.rotateRight().rotateRight()};
+        Direction [] toTry;
+        if (Math.random() < 0.5) {
+            Direction [] temp = {dir, dir.rotateLeft(), dir.rotateRight(), dir.rotateLeft().rotateLeft(), dir.rotateRight().rotateRight()};
+            toTry = temp;
+        }
+        else {
+            Direction[] temp = {dir, dir.rotateRight(), dir.rotateLeft(), dir.rotateRight().rotateRight(),dir.rotateLeft().rotateLeft()};
+            toTry = temp;
+        }
         for (Direction d : toTry){
             if(tryMove(d))
                 return true;
