@@ -27,8 +27,10 @@ public strictfp class RobotPlayer {
     static ArrayList<MapLocation> enemyHQPossibilities = new ArrayList<MapLocation>(3);
     static MapLocation targetLoc = null;
 
-    static boolean hasBuiltMiner = false;
+    static int minersBuilt = 0;
     static boolean hasBuiltDesignSchool = false;
+
+    static boolean firstMiner = false;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -51,6 +53,11 @@ public strictfp class RobotPlayer {
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
                 System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
+                // if the robot is created on turn 2, then it is the first miner
+                if (rc.getRoundNum() == 2) {
+                    firstMiner = true;
+                    System.out.println("This is the first miner!");
+                }
                 //System.out.println("Cooldown left: " + rc.getCooldownTurns());
                 findHQ();
                 switch (rc.getType()) {
@@ -102,14 +109,14 @@ public strictfp class RobotPlayer {
     }
 
     static void runHQ() throws GameActionException {
-        if (rc.getTeamSoup() >= 60 && !hasBuiltMiner)
+        if (rc.getTeamSoup() >= 60 && minersBuilt < 3)
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir))
-                    hasBuiltMiner = true;
+                    minersBuilt ++;
     }
 
     static void runMiner() throws GameActionException {
-        if (!hasBuiltDesignSchool)
+        if (firstMiner && !hasBuiltDesignSchool)
             minerAttacc();
         else
             minerGetSoup();
