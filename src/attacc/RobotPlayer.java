@@ -197,6 +197,9 @@ public strictfp class RobotPlayer {
                     minersBuilt ++;
             }
         }
+
+        // HQ also has a net gun
+        runNetGun();
     }
 
     static void runMiner() throws GameActionException {
@@ -627,6 +630,16 @@ public strictfp class RobotPlayer {
     }
 
     static void runNetGun() throws GameActionException {
+        // see if there are any enemy drones in range
+        // if so, shoot them down
+        // FORNOW, we'll just do the naive implementation of shooting down drones at random
+        // Ideally, if there are multiple enemy drones, we would choose one more intelligently (e.g. closest one)
+
+        RobotInfo [] robots = rc.senseNearbyRobots();
+        for (RobotInfo robot : robots) {
+            if (rc.canShootUnit(robot.getID()) && (rc.getTeam() != robot.getTeam()))
+                rc.shootUnit(robot.getID());
+        }
 
     }
 
