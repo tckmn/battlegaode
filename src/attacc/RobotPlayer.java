@@ -174,10 +174,29 @@ public strictfp class RobotPlayer {
         }
         // build only 3 miners (5 if the game goes on too long)
         // TODO: For all miners except the first, spawn in direction of nearest soup
-        if (rc.getTeamSoup() >= 60 && (minersBuilt < 3 || (rc.getRoundNum() > proteccRound && minersBuilt < 5)))
+        if (rc.getTeamSoup() >= 60 && (minersBuilt < 3 || (rc.getRoundNum() > proteccRound && minersBuilt < 5))) {
+            // determine best direction to spawn in
+            // for first robot this is nearest to MapLocation(X-x, y)
+            // otherwise this is nearest to closest soup
+            
+            MapLocation loc = rc.getLocation();
+            MapLocation targetLoc;
+            if (minersBuilt == 0) {
+                int X = rc.getMapWidth()-1; // correct for 0 indexing of map
+                targetLoc = new MapLocation(X - loc.x, loc.y);
+            } else {
+                targetLoc = findNearestSoup(6);
+            }
+            Direction spawnDir = loc.directionTo(targetLoc);
+            if (tryBuild(RobotType.MINER, spawnDir) || tryBuild(RobotType.MINER, spawnDir.rotateRight())
+                    || tryBuild(RobotType.MINER, spawnDir.rotateLeft())) {
+                minersBuilt ++;
+            } else {
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir))
                     minersBuilt ++;
+            }
+        }
     }
 
     static void runMiner() throws GameActionException {
@@ -241,12 +260,24 @@ public strictfp class RobotPlayer {
             return;
         }
 
-        // otherwise, try to go to the next possible enemy HQ location
-        if (!(rc.getLocation().equals(enemyHQPossibilities.get(0))))
-            goTo(enemyHQPossibilities.get(0));
-        // if already at enemy HQ location, then there is nothing there, so we have the wrong spot
-        else
+        // if we can see there is nothing at enemyHQPossiblities.get(0), remove from list
+        // otherwise go there
+        // we can sense at a distance, so no need to physically walk there just to see that it's empty
+        MapLocation nextTarget = enemyHQPossibilities.get(0);
+        boolean notHere;
+        if (rc.canSenseLocation(nextTarget)) {
+            RobotInfo robot = rc.senseRobotAtLocation(nextTarget);
+            if (robot == null || !(robot.type == RobotType.HQ && robot.team != rc.getTeam()))
+                notHere = true;
+            else
+                notHere = false;
+        } else {
+            notHere = false;
+        }
+        if (notHere)
             enemyHQPossibilities.remove(0);
+        
+        goTo(enemyHQPossibilities.get(0)); // may have changed due to removal
 
         if (tryMove(currentDir))
           System.out.println("I moved!");
@@ -259,6 +290,24 @@ public strictfp class RobotPlayer {
             if(tryBuild(RobotType.DESIGN_SCHOOL, Direction.NORTH))
                 hasBuiltDesignSchool = true;
         goTo(rc.getLocation().directionTo(hqLoc.translate(0,-4)));
+    }
+
+    static MapLocation findNearestSoup(int k) throws GameActionException {
+        for (int n = 1; n <= k; n ++) {
+            for (int x = -n; x <= n; x ++){
+                for (int y = -n; y <= n; y ++) {
+                    MapLocation possibleLoc = rc.getLocation().translate(x,y);
+                    System.out.println("Is there soup at " + possibleLoc + "?");
+                    if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
+                        // go to that location and break out of this loop
+                        System.out.println("Found soup; now going to " + possibleLoc);
+                        targetLoc = possibleLoc;
+                        return targetLoc;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     static void minerGetSoup() throws GameActionException {
@@ -314,9 +363,9 @@ public strictfp class RobotPlayer {
             goTo(targetLoc);
             return;
         }
-        // TODO: try to sense soup at all visible locations
-        // try to do this at closer locations first
+
         // This is wasteful in terms of bytecodes but hopefully we have plenty
+        // TODO: Replace this with findNearestSoup (above)
         MapLocation myLoc = rc.getLocation();
         for (int n = 1; n <= 5; n ++) {
             for (int x = -n; x <= n; x ++){
@@ -686,6 +735,7 @@ public strictfp class RobotPlayer {
     }
 
     // tries to move in the general direction of dir (from lecturePlayer)
+    // TODO: Revise this to call the method below
     static boolean goTo(Direction dir) throws GameActionException {
         Direction [] toTry;
         if (Math.random() < 0.5) {
@@ -703,9 +753,38 @@ public strictfp class RobotPlayer {
         return false;
     }
 
+    // tries to move in the general direction of dir with preference to the right (if preferenceRight is true)
+    static boolean goTo(Direction dir, boolean preferenceLeft) throws GameActionException {
+        Direction [] toTry;
+        if (preferenceLeft) {
+            Direction [] temp = {dir, dir.rotateLeft(), dir.rotateRight(), dir.rotateLeft().rotateLeft(), dir.rotateRight().rotateRight()};
+            toTry = temp;
+        }
+        else {
+            Direction[] temp = {dir, dir.rotateRight(), dir.rotateLeft(), dir.rotateRight().rotateRight(),dir.rotateLeft().rotateLeft()};
+            toTry = temp;
+        }
+        for (Direction d : toTry){
+            if(tryMove(d))
+                return true;
+        }
+        return false;
+    }
+
     // navigate towards a particular location
     static boolean goTo(MapLocation destination) throws GameActionException {
         System.out.println("Trying to go to " + destination);
-        return goTo(rc.getLocation().directionTo(destination));
+        MapLocation myLoc = rc.getLocation();
+        double x = destination.x - myLoc.x;
+        double y = destination.y - myLoc.y;
+        double actualAngle = Math.atan2(y, x);
+        Direction dir = myLoc.directionTo(destination);
+        double dirAngle = Math.atan2(dir.dy, dir.dx);
+        double difference = (actualAngle - dirAngle + 2 * Math.PI) % (2 * Math.PI);
+        System.out.println(difference);
+        if (difference < Math.PI)
+            return goTo(dir, true);
+        else
+            return goTo(dir, false);
     }
 }
