@@ -195,14 +195,7 @@ public strictfp class RobotPlayer {
     }
 
     static void minerAttacc() throws GameActionException {
-        // if stuck, build a drone factory and then stop moving
-        if (isStuck) {
-            if (!hasBuiltFulfillmentCenter)
-                for (Direction dir : directions)
-                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir))
-                        hasBuiltFulfillmentCenter = true;
-            return;
-        }
+
 
         // try to find enemy HQ
         RobotInfo [] robots = rc.senseNearbyRobots();
@@ -221,6 +214,15 @@ public strictfp class RobotPlayer {
                 if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft()))
                     hasBuiltDesignSchool = true;
             }
+            return;
+        }
+
+        // if stuck, build a drone factory and then stop moving
+        if (isStuck) {
+            if (!hasBuiltFulfillmentCenter)
+                for (Direction dir : directions)
+                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir))
+                        hasBuiltFulfillmentCenter = true;
             return;
         }
 
