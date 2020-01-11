@@ -68,7 +68,7 @@ public strictfp class RobotPlayer {
                     System.out.println("This is the first miner!");
                 }
                 //System.out.println("Cooldown left: " + rc.getCooldownTurns());
-                findHQ();
+                if (hqLoc == null) findHQ();
                 switch (rc.getType()) {
                     case HQ:                 runHQ();                break;
                     case MINER:              runMiner();             break;
@@ -269,6 +269,8 @@ public strictfp class RobotPlayer {
             return;
         }
         // TODO: try to sense soup at all visible locations
+        // try to do this at closer locations first
+        // This is wasteful in terms of bytecodes but hopefully we have plenty
         MapLocation myLoc = rc.getLocation();
         for (int x = -5; x <= 5; x ++){
             for (int y = -5; y <= 5; y ++) {
