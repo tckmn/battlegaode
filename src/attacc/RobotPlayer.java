@@ -18,6 +18,8 @@ public strictfp class RobotPlayer {
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
+    static int hqMessageNumber = 18527548;
+
     static int turnCount;
     static MapLocation hqLoc;
 
@@ -90,6 +92,39 @@ public strictfp class RobotPlayer {
     }
 
     static void findHQ() throws GameActionException {
+        // read the blockchain until we find the HQ
+        // this should only have to read round 1
+        int roundNumber = 1;
+        while (roundNumber < rc.getRoundNum()) {
+            Transaction [] block = rc.getBlock(roundNumber);
+            for (Transaction t : block)
+            {
+                int [] message = t.getMessage();
+                if(message[0] == hqMessageNumber)
+                {
+                    hqLoc = new MapLocation(message[1], message[2]);
+                    System.out.println("Found HQ location");
+                    break;
+                }
+            }
+            roundNumber++;
+        }
+
+    // if it has found HQ, then list possible enemy HQ locations
+        if (hqLoc != null) {
+            int x, y, X, Y;
+            x = hqLoc.x;
+            y = hqLoc.y;
+            X = rc.getMapWidth()-1; // correct for 0 indexing of map
+            Y = rc.getMapHeight()-1;
+            enemyHQPossibilities.add(new MapLocation(X-x,y));
+            enemyHQPossibilities.add(new MapLocation(X-x,Y-y));
+            enemyHQPossibilities.add(new MapLocation(x,Y-y));
+        }
+    }
+
+    // don't actually use this method - just save for debugging
+    static void findHQOld() throws GameActionException {
         if (hqLoc == null) {
             // search surroundings for HQ
             RobotInfo[] robots = rc.senseNearbyRobots();
@@ -116,6 +151,16 @@ public strictfp class RobotPlayer {
     }
 
     static void runHQ() throws GameActionException {
+        if (turnCount == 1) {
+            MapLocation loc = rc.getLocation();
+            int [] message = new int[7];
+            message[0] = hqMessageNumber;
+            message[1] = loc.x;
+            message[2] = loc.y;
+            for (int i = 3; i < 7; i ++) message[i] = 0;
+            if (rc.canSubmitTransaction(message, 1))
+                rc.submitTransaction(message, 1);
+        }
         if (rc.getTeamSoup() >= 60 && minersBuilt < 3)
             for (Direction dir : directions)
                 if(tryBuild(RobotType.MINER, dir))
@@ -399,7 +444,7 @@ public strictfp class RobotPlayer {
      */
     static boolean tryMove(Direction dir) throws GameActionException {
         // System.out.println("I am trying to move " + dir + "; " + rc.isReady() + " " + rc.getCooldownTurns() + " " + rc.canMove(dir));
-        if (rc.isReady() && rc.canMove(dir) && !rc.senseFlooding(rc.getLocation().add(dir))) {
+        if (rc.isReady() && rc.canMove(dir) && (!rc.senseFlooding(rc.getLocation().add(dir)) || rc.getType() == RobotType.DELIVERY_DRONE)) {
             rc.move(dir);
             return true;
         } else return false;
