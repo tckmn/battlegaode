@@ -29,8 +29,15 @@ public strictfp class RobotPlayer {
 
     static int minersBuilt = 0;
     static boolean hasBuiltDesignSchool = false;
+    static boolean hasBuiltFulfillmentCenter = false;
+    static boolean hasBuiltDrone = false;
+    static boolean hasTransportedMiner = false;
 
     static boolean firstMiner = false;
+
+    static MapLocation [] recentLocs = new MapLocation[5];
+    static int [] recentSoup = new int[5];
+    static boolean isStuck = false;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -116,6 +123,26 @@ public strictfp class RobotPlayer {
     }
 
     static void runMiner() throws GameActionException {
+        recentSoup[rc.getRoundNum() % 5] = rc.getSoupCarrying();
+        recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
+        // can't move for first 10 turns anyway, so don't check until then
+        if (turnCount > 10) {
+            // if soup is stuck at the same amount and >= 3 locations in recentLocs match current one
+            // then robot is stuck
+            int locationMatches = 0;
+            for (MapLocation loc : recentLocs)
+                if (loc.equals(rc.getLocation()))
+                    locationMatches ++;
+            isStuck = (locationMatches >= 3);
+            int currentSoup = rc.getSoupCarrying();
+            for (int pastSoup : recentSoup){
+                if (pastSoup != currentSoup) {
+                    isStuck = false;
+                }
+            }
+        }
+        if (isStuck)
+            System.out.println("Woe is I; I'm stuck!");
         if (firstMiner && !hasBuiltDesignSchool)
             minerAttacc();
         else
@@ -123,6 +150,15 @@ public strictfp class RobotPlayer {
     }
 
     static void minerAttacc() throws GameActionException {
+        // if stuck, build a drone factory and then stop moving
+        if (isStuck) {
+            if (!hasBuiltFulfillmentCenter)
+                for (Direction dir : directions)
+                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir))
+                        hasBuiltFulfillmentCenter = true;
+            return;
+        }
+
         // try to find enemy HQ
         RobotInfo [] robots = rc.senseNearbyRobots();
         for (RobotInfo robot : robots) {
@@ -177,6 +213,10 @@ public strictfp class RobotPlayer {
             System.out.println("Has enough soup; going home");
             targetLoc = hqLoc;
         }
+        // if stuck, go home
+        if (isStuck)
+            targetLoc = hqLoc;
+
         if (targetLoc != null){
             goTo(targetLoc);
             return;
@@ -225,8 +265,19 @@ public strictfp class RobotPlayer {
     }
 
     static void runFulfillmentCenter() throws GameActionException {
-        for (Direction dir : directions)
-            tryBuild(RobotType.DELIVERY_DRONE, dir);
+        if (hasBuiltDrone)
+            return;
+        System.out.println("looking for nearby robots!");
+        // find the nearby miner (hopefully exists and is unique)
+        RobotInfo[] neighbors = rc.senseNearbyRobots(2);
+        for (RobotInfo robot : neighbors)
+            if (robot.getType() == RobotType.MINER && robot.getTeam() == rc.getTeam()){
+                Direction dirToMiner = rc.getLocation().directionTo(robot.getLocation());
+                if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateLeft()))
+                    hasBuiltDrone = true;
+                if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateRight()))
+                    hasBuiltDrone = true;
+            }
     }
 
     static void runLandscaper() throws GameActionException {
@@ -258,19 +309,46 @@ public strictfp class RobotPlayer {
     }
 
     static void runDeliveryDrone() throws GameActionException {
-        Team enemy = rc.getTeam().opponent();
-        if (!rc.isCurrentlyHoldingUnit()) {
-            // See if there are any enemy robots within striking range (distance 1 from lumberjack's radius)
-            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.DELIVERY_DRONE_PICKUP_RADIUS_SQUARED, enemy);
+        if (rc.isCurrentlyHoldingUnit()){
 
-            if (robots.length > 0) {
-                // Pick up a first robot within range
-                rc.pickUpUnit(robots[0].getID());
-                System.out.println("I picked up " + robots[0].getID() + "!");
+            // try to find enemy HQ
+            RobotInfo [] robots = rc.senseNearbyRobots();
+            for (RobotInfo robot : robots) {
+                if (robot.type == RobotType.HQ && robot.team != rc.getTeam()) {
+                    enemyHQ = robot.location;
+                    currentDir = rc.getLocation().directionTo(robot.location);
+                    System.out.println("Found enemy HQ!");
+                }
             }
-        } else {
-            // No close robots, so search for robots within sight radius
-            tryMove(randomDirection());
+            // if adjacent to enemy HQ, release payload
+            if (rc.getLocation().isAdjacentTo(enemyHQ)) {
+                if (rc.canDropUnit(currentDir.rotateRight()))
+                {
+                    rc.dropUnit(currentDir.rotateRight());
+                    hasTransportedMiner = true;
+                }
+                if (rc.canDropUnit(currentDir.rotateLeft())) {
+                    rc.dropUnit(currentDir.rotateLeft());
+                    hasTransportedMiner = true;
+                }
+                return;
+            }
+
+            // otherwise, try to go to the next possible enemy HQ location
+            if (!(rc.getLocation().equals(enemyHQPossibilities.get(0))))
+                goTo(enemyHQPossibilities.get(0));
+            // if already at enemy HQ location, then there is nothing there, so we have the wrong spot
+            else
+                enemyHQPossibilities.remove(0);
+        } else if (!hasTransportedMiner) {
+            // pick up nearby miner
+            System.out.println("looking for nearby robots!");
+            // find the nearby miner (hopefully exists and is unique)
+            RobotInfo[] neighbors = rc.senseNearbyRobots(2);
+            for (RobotInfo robot : neighbors)
+                if (robot.getType() == RobotType.MINER && robot.getTeam() == rc.getTeam()){
+                    rc.pickUpUnit(robot.getID());
+                }
         }
     }
 
