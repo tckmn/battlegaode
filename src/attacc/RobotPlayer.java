@@ -41,6 +41,8 @@ public strictfp class RobotPlayer {
     static int [] recentSoup = new int[5];
     static boolean isStuck = false;
 
+    static MapLocation lastSoupMined = null;
+
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * If this method returns, the robot dies!
@@ -272,21 +274,29 @@ public strictfp class RobotPlayer {
         // try to do this at closer locations first
         // This is wasteful in terms of bytecodes but hopefully we have plenty
         MapLocation myLoc = rc.getLocation();
-        for (int x = -5; x <= 5; x ++){
-            for (int y = -5; y <= 5; y ++) {
-                MapLocation possibleLoc = myLoc.translate(x,y);
-                System.out.println("Is there soup at " + possibleLoc + "?");
-                if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
-                    // go to that location and break out of this loop
-                    System.out.println("Found soup; now going to " + possibleLoc);
-                    targetLoc = possibleLoc;
-                    goTo(targetLoc);
-                    return;
+        for (int n = 1; n <= 5; n ++) {
+            for (int x = -n; x <= n; x ++){
+                for (int y = -n; y <= n; y ++) {
+                    MapLocation possibleLoc = myLoc.translate(x,y);
+                    System.out.println("Is there soup at " + possibleLoc + "?");
+                    if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
+                        // go to that location and break out of this loop
+                        System.out.println("Found soup; now going to " + possibleLoc);
+                        targetLoc = possibleLoc;
+                        goTo(targetLoc);
+                        return;
+                    }
                 }
             }
         }
-        System.out.println("Couldn't find soup; going home");
-        goTo(hqLoc);
+        // if it can't find soup, go to last location where it found soup (if it exists) or home
+        if (lastSoupMined != null) {
+            System.out.println("Going to last soup mined");
+            goTo(lastSoupMined);
+        } else {
+            System.out.println("Couldn't find soup; going home");
+            goTo(hqLoc);
+        }
     }
 
     static void runRefinery() throws GameActionException {
@@ -483,6 +493,7 @@ public strictfp class RobotPlayer {
     static boolean tryMine(Direction dir) throws GameActionException {
         if (rc.isReady() && rc.canMineSoup(dir)) {
             rc.mineSoup(dir);
+            lastSoupMined = rc.getLocation().add(dir);
             return true;
         } else return false;
     }
