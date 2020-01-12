@@ -8,12 +8,12 @@ public strictfp class RobotPlayer {
     static Direction[] directions = {
         Direction.NORTH,
         Direction.NORTHEAST,
+        Direction.NORTHWEST,
         Direction.EAST,
-        Direction.SOUTHEAST,
-        Direction.SOUTH,
-        Direction.SOUTHWEST,
         Direction.WEST,
-        Direction.NORTHWEST
+        Direction.SOUTHEAST,
+        Direction.SOUTHWEST,
+        Direction.SOUTH
     };
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
@@ -243,8 +243,32 @@ public strictfp class RobotPlayer {
                 System.out.println("Found enemy HQ!");
             }
         }
+
         // if adjacent to enemy HQ, build a design studio and then do nothing else
         if (rc.getLocation().isAdjacentTo(enemyHQ)) {
+            // if we see a drone factory (fulfillment center), build a net gun
+            MapLocation nearbyFulfillmentCenter = null;
+            for (RobotInfo robot : rc.senseNearbyRobots()) {
+                if (robot.type == RobotType.FULFILLMENT_CENTER && robot.getTeam() != rc.getTeam()){
+                    nearbyFulfillmentCenter = robot.getLocation();
+                }
+            }
+            // if we already have a net gun, then ignore this
+            for (RobotInfo robot : rc.senseNearbyRobots()) {
+                if (robot.type == RobotType.NET_GUN && robot.getTeam() == rc.getTeam()){
+                    nearbyFulfillmentCenter = null;
+                }
+            }
+
+            if (nearbyFulfillmentCenter != null) {
+                Direction dir = rc.getLocation().directionTo(nearbyFulfillmentCenter);
+                tryBuild(RobotType.NET_GUN, dir);
+                tryBuild(RobotType.NET_GUN, dir.rotateLeft());
+                tryBuild(RobotType.NET_GUN, dir.rotateRight());
+                tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft());
+                tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight());
+            }
+
             if (rc.getTeamSoup() >= 150) {
                 if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight()))
                     hasBuiltDesignSchool = true;
