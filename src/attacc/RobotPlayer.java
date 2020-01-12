@@ -240,7 +240,7 @@ public strictfp class RobotPlayer {
         // and start protecting in turn 150 if soup > 300 (more than net gun price)
         else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
             || canSeeEnemy(RobotType.LANDSCAPER)
-            || (rc.getTeamSoup() + rc.getRoundNum() * 3 >= 750))
+            || (rc.getTeamSoup() + rc.getRoundNum() * 3 >= 750)))
             minerProtecc();
         else
             minerGetSoup();
@@ -679,6 +679,12 @@ public strictfp class RobotPlayer {
                 minDirt = rc.senseElevation(loc);
             }
         }
+
+        // also some self-defense: If current tile is within 2 squares of HQ
+        // and current tile has < 10% of dirt of lowest candidate tile
+        // then defend own tile before building wall (so that landscaper can survive longer)
+        if (currentLoc.distanceSquaredTo(hqLoc) <= 8 && rc.senseElevation(currentLoc) * 10 < minDirt)
+            minDirtLocation = currentLoc;
 
         // if this doesn't find anything, go to the normal protection routine
 
