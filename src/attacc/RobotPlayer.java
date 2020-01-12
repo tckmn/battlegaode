@@ -179,7 +179,7 @@ public strictfp class RobotPlayer {
         if (soupLoc != null) lastSoupMined = soupLoc;
         // build only 3 miners (5 if the game goes on too long)
         // TODO: For all miners except the first, spawn in direction of nearest soup
-        if (rc.getTeamSoup() >= 60 && (minersBuilt < 3 || (rc.getRoundNum() > proteccRound && minersBuilt < 5))) {
+        if (rc.getTeamSoup() >= 60 && (minersBuilt < 4 || (rc.getRoundNum() > proteccRound && minersBuilt < 5))) {
             // determine best direction to spawn in
             // for first robot this is nearest to MapLocation(X-x, y)
             // otherwise this is nearest to closest soup
