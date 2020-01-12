@@ -244,30 +244,33 @@ public strictfp class RobotPlayer {
             }
         }
 
+        // if we see a fulfillment center anywhere then build a net gun
+        MapLocation nearbyFulfillmentCenter = null;
+        for (RobotInfo robot : rc.senseNearbyRobots()) {
+            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.getTeam() != rc.getTeam()){
+                nearbyFulfillmentCenter = robot.getLocation();
+            }
+        }
+        // if we already have a net gun, then ignore this
+        for (RobotInfo robot : rc.senseNearbyRobots()) {
+            if (robot.type == RobotType.NET_GUN && robot.getTeam() == rc.getTeam()){
+                nearbyFulfillmentCenter = null;
+            }
+        }
+
+        if (nearbyFulfillmentCenter != null) {
+            Direction dir = rc.getLocation().directionTo(nearbyFulfillmentCenter);
+            tryBuild(RobotType.NET_GUN, dir);
+            tryBuild(RobotType.NET_GUN, dir.rotateLeft());
+            tryBuild(RobotType.NET_GUN, dir.rotateRight());
+            tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft());
+            tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight());
+        }
+
+
         // if adjacent to enemy HQ, build a design studio and then do nothing else
         if (rc.getLocation().isAdjacentTo(enemyHQ)) {
             // if we see a drone factory (fulfillment center), build a net gun
-            MapLocation nearbyFulfillmentCenter = null;
-            for (RobotInfo robot : rc.senseNearbyRobots()) {
-                if (robot.type == RobotType.FULFILLMENT_CENTER && robot.getTeam() != rc.getTeam()){
-                    nearbyFulfillmentCenter = robot.getLocation();
-                }
-            }
-            // if we already have a net gun, then ignore this
-            for (RobotInfo robot : rc.senseNearbyRobots()) {
-                if (robot.type == RobotType.NET_GUN && robot.getTeam() == rc.getTeam()){
-                    nearbyFulfillmentCenter = null;
-                }
-            }
-
-            if (nearbyFulfillmentCenter != null) {
-                Direction dir = rc.getLocation().directionTo(nearbyFulfillmentCenter);
-                tryBuild(RobotType.NET_GUN, dir);
-                tryBuild(RobotType.NET_GUN, dir.rotateLeft());
-                tryBuild(RobotType.NET_GUN, dir.rotateRight());
-                tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft());
-                tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight());
-            }
 
             if (rc.getTeamSoup() >= 150) {
                 if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight()))
