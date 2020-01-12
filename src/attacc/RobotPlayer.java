@@ -188,8 +188,9 @@ public strictfp class RobotPlayer {
                 targetLoc = findNearestSoup(6);
             }
             Direction spawnDir = loc.directionTo(targetLoc);
-            if (tryBuild(RobotType.MINER, spawnDir) || tryBuild(RobotType.MINER, spawnDir.rotateRight())
-                    || tryBuild(RobotType.MINER, spawnDir.rotateLeft())) {
+            if (spawnDir != null 
+                && (tryBuild(RobotType.MINER, spawnDir) || tryBuild(RobotType.MINER, spawnDir.rotateRight())
+                    || tryBuild(RobotType.MINER, spawnDir.rotateLeft()))) {
                 minersBuilt ++;
             } else {
             for (Direction dir : directions)
