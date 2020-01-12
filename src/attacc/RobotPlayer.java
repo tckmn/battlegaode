@@ -119,7 +119,7 @@ public strictfp class RobotPlayer {
                 {
                     hqLoc = new MapLocation(message[1], message[2]);
                     System.out.println("Found HQ location");
-                    break;
+                    return;
                 }
             }
             roundNumber++;
