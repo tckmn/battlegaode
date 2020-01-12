@@ -571,7 +571,7 @@ public strictfp class RobotPlayer {
     static void runLandscaperAttacc() throws GameActionException {
         // find enemy HQ and friendly net gun
         MapLocation netGun = null;
-        MapLocation fulfillmentCenter = null;
+        MapLocation designSchool = null;
         RobotInfo [] robots = rc.senseNearbyRobots();
         for (RobotInfo robot : robots) {
             if (robot.type == RobotType.HQ && robot.team != rc.getTeam()) {
@@ -579,10 +579,13 @@ public strictfp class RobotPlayer {
                 currentDir = rc.getLocation().directionTo(robot.location);
                 System.out.println("Found enemy HQ!");
             }
-            if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam())
+            if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam()) {
                 netGun = robot.location;
-            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.team == rc.getTeam())
-                fulfillmentCenter = robot.location;
+                System.out.println("Found friendly net gun!");
+            }
+            if (robot.type == RobotType.DESIGN_SCHOOL && robot.team == rc.getTeam()) {
+                designSchool = robot.location;
+            }
         }
         // If there is a nearby net gun with dirt on it, remove the dirt from that
         if (netGun != null) {
@@ -592,9 +595,9 @@ public strictfp class RobotPlayer {
             }
         }
         // also remove dirt from fulfillment centers
-        if (fulfillmentCenter != null) {
-            if (rc.canDigDirt(rc.getLocation().directionTo(fulfillmentCenter))) {
-                rc.digDirt(rc.getLocation().directionTo(fulfillmentCenter));
+        if (designSchool != null) {
+            if (rc.canDigDirt(rc.getLocation().directionTo(designSchool))) {
+                rc.digDirt(rc.getLocation().directionTo(designSchool));
                 System.out.println("Removed dirt from friendly fulfillment center!");
             }
         }
