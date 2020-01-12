@@ -30,12 +30,15 @@ public strictfp class RobotPlayer {
 
     static ArrayList<MapLocation> enemyHQPossibilities = new ArrayList<MapLocation>(3);
     static MapLocation targetLoc = null;
+    static MapLocation designSchoolLoc = null;
 
     static int minersBuilt = 0;
     static boolean hasBuiltDesignSchool = false;
     static boolean hasBuiltFulfillmentCenter = false;
     static boolean hasBuiltDrone = false;
     static boolean hasTransportedMiner = false;
+    static boolean hasBuiltNetGun = false;
+    static int designSchoolTurnBuilt = -1;
 
     static boolean firstMiner = false;
     static boolean secondMiner = false;
@@ -172,6 +175,8 @@ public strictfp class RobotPlayer {
             if (rc.canSubmitTransaction(message, 1))
                 rc.submitTransaction(message, 1);
         }
+        MapLocation soupLoc = findNearestSoup(6);
+        if (soupLoc != null) lastSoupMined = soupLoc;
         // build only 3 miners (5 if the game goes on too long)
         // TODO: For all miners except the first, spawn in direction of nearest soup
         if (rc.getTeamSoup() >= 60 && (minersBuilt < 3 || (rc.getRoundNum() > proteccRound && minersBuilt < 5))) {
@@ -186,6 +191,7 @@ public strictfp class RobotPlayer {
                 targetLoc = new MapLocation(X - loc.x, loc.y);
             } else {
                 targetLoc = findNearestSoup(6);
+                if (targetLoc == null && lastSoupMined != null) targetLoc = lastSoupMined;
             }
             Direction spawnDir = loc.directionTo(targetLoc);
             if (spawnDir != null 
@@ -224,7 +230,7 @@ public strictfp class RobotPlayer {
         }
         if (isStuck)
             System.out.println("Woe is I; I'm stuck!");
-        if (firstMiner && !hasBuiltDesignSchool)
+        if (firstMiner)
             minerAttacc();
         else if (secondMiner && rc.getRoundNum() >= proteccRound && !hasBuiltDesignSchool)
             minerProtecc();
@@ -233,7 +239,6 @@ public strictfp class RobotPlayer {
     }
 
     static void minerAttacc() throws GameActionException {
-
 
         // try to find enemy HQ
         RobotInfo [] robots = rc.senseNearbyRobots();
@@ -248,36 +253,62 @@ public strictfp class RobotPlayer {
         // if we see a fulfillment center anywhere then build a net gun
         MapLocation nearbyFulfillmentCenter = null;
         for (RobotInfo robot : rc.senseNearbyRobots()) {
-            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.getTeam() != rc.getTeam()){
+            if ((robot.type == RobotType.FULFILLMENT_CENTER || robot.type == RobotType.DELIVERY_DRONE)
+                    && robot.getTeam() != rc.getTeam()){
                 nearbyFulfillmentCenter = robot.getLocation();
             }
         }
-        // if we already have a net gun, then ignore this
-        for (RobotInfo robot : rc.senseNearbyRobots()) {
-            if (robot.type == RobotType.NET_GUN && robot.getTeam() == rc.getTeam()){
-                nearbyFulfillmentCenter = null;
-            }
-        }
+        if (hasBuiltNetGun)
+            nearbyFulfillmentCenter = null;
 
         if (nearbyFulfillmentCenter != null) {
             Direction dir = rc.getLocation().directionTo(nearbyFulfillmentCenter);
-            tryBuild(RobotType.NET_GUN, dir);
-            tryBuild(RobotType.NET_GUN, dir.rotateLeft());
-            tryBuild(RobotType.NET_GUN, dir.rotateRight());
-            tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft());
-            tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight());
+            if (tryBuild(RobotType.NET_GUN, dir)
+             || tryBuild(RobotType.NET_GUN, dir.rotateLeft())
+             || tryBuild(RobotType.NET_GUN, dir.rotateRight())
+             || tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
+             || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
+                hasBuiltNetGun = true;
         }
 
 
         // if adjacent to enemy HQ, build a design studio and then do nothing else
         if (rc.getLocation().isAdjacentTo(enemyHQ)) {
-            // if we see a drone factory (fulfillment center), build a net gun
+            if (!hasBuiltDesignSchool) {
+                // if we see a drone factory (fulfillment center), build a net gun
 
-            if (rc.getTeamSoup() >= 150) {
-                if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight()))
-                    hasBuiltDesignSchool = true;
-                if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft()))
-                    hasBuiltDesignSchool = true;
+                if (rc.getTeamSoup() >= 150) {
+                    if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight())) {
+                        hasBuiltDesignSchool = true;
+                        designSchoolLoc = rc.getLocation().add(currentDir.rotateRight());
+                        designSchoolTurnBuilt = rc.getRoundNum();
+                    }
+                    if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft())) {
+                        hasBuiltDesignSchool = true;
+                        designSchoolLoc = rc.getLocation().add(currentDir.rotateLeft());
+                        designSchoolTurnBuilt = rc.getRoundNum();
+                    }
+                }
+                return;
+            } 
+        }
+
+        if (hasBuiltDesignSchool) {
+            System.out.println("Already built design school, now annoy opponent");
+            MapLocation annoyingLoc = enemyHQ.add(enemyHQ.directionTo(designSchoolLoc).opposite());
+            if (!rc.getLocation().equals(annoyingLoc)) {
+                System.out.println("Move to annoying location");
+                goTo(annoyingLoc);
+            }
+            else if (!hasBuiltNetGun && rc.getRoundNum() > 13 + designSchoolTurnBuilt) {
+                System.out.println("Build net gun in annoying location");
+                Direction dir = rc.getLocation().directionTo(enemyHQ);
+                if (tryBuild(RobotType.NET_GUN, dir)
+                 || tryBuild(RobotType.NET_GUN, dir.rotateLeft())
+                 || tryBuild(RobotType.NET_GUN, dir.rotateRight())
+                 || tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
+                 || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
+                    hasBuiltNetGun = true;
             }
             return;
         }
@@ -418,8 +449,23 @@ public strictfp class RobotPlayer {
             System.out.println("Going to last soup mined");
             goTo(lastSoupMined);
         } else {
-            System.out.println("Couldn't find soup; moving randomly");
-            tryMove();
+            // try to follow nearest other miner (maybe they are smarter than we are)
+            RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
+            int minDistance = Integer.MAX_VALUE;
+            MapLocation nearestMiner = null;
+            for (RobotInfo robot : nearbyRobots) {
+                if (robot.type == RobotType.MINER && rc.getLocation().distanceSquaredTo(robot.getLocation()) < minDistance) {
+                    minDistance = rc.getLocation().distanceSquaredTo(robot.getLocation());
+                    nearestMiner = robot.getLocation();
+                }
+            }
+            if (nearestMiner != null) {
+                System.out.println("Couldn't find soup; following nearest miner");
+                goTo(nearestMiner);
+            } else {
+                System.out.println("Couldn't find soup; moving randomly");
+                tryMove();
+            }
         }
     }
 
