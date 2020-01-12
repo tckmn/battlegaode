@@ -110,6 +110,7 @@ public strictfp class RobotPlayer {
         // read the blockchain until we find the HQ
         // this should only have to read round 1
         int roundNumber = 1;
+        outerLoop:
         while (roundNumber < rc.getRoundNum()) {
             Transaction [] block = rc.getBlock(roundNumber);
             for (Transaction t : block)
@@ -119,7 +120,7 @@ public strictfp class RobotPlayer {
                 {
                     hqLoc = new MapLocation(message[1], message[2]);
                     System.out.println("Found HQ location");
-                    return;
+                    break outerLoop;
                 }
             }
             roundNumber++;
