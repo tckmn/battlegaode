@@ -232,10 +232,28 @@ public strictfp class RobotPlayer {
             System.out.println("Woe is I; I'm stuck!");
         if (firstMiner)
             minerAttacc();
-        else if (secondMiner && rc.getRoundNum() >= proteccRound && !hasBuiltDesignSchool)
+        // conditions for defense:
+        // * round number >= proteccRound (250)
+        // * sees an enemy landscaper in range
+        // getTeamSoup() + getroundNum() * 3 > 750
+        // Last condition means that we always protect in round 250
+        // and start protecting in turn 150 if soup > 300 (more than net gun price)
+        else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
+            || canSeeEnemy(RobotType.LANDSCAPER)
+            || (rc.getTeamSoup() + rc.getRoundNum() * 3 >= 750))
             minerProtecc();
         else
             minerGetSoup();
+    }
+
+    // routine to sense enemies of given type
+    // use this more often so we don't have to keep rewriting it
+    static boolean canSeeEnemy(RobotType type) throws GameActionException {
+        RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
+        for (RobotInfo robot : nearbyRobots)
+            if (robot.type == type && robot.getTeam() != rc.getTeam())
+                return true;
+        return false;
     }
 
     static void minerAttacc() throws GameActionException {
