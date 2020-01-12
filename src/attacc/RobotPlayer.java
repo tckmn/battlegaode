@@ -26,7 +26,7 @@ public strictfp class RobotPlayer {
     static int turnCount;
     static MapLocation hqLoc;
 
-    static MapLocation enemyHQ = new MapLocation(-10,-10);
+    static MapLocation enemyHQ = null;
     static Direction currentDir = randomDirection();
 
     static ArrayList<MapLocation> enemyHQPossibilities = new ArrayList<MapLocation>(3);
@@ -295,7 +295,7 @@ public strictfp class RobotPlayer {
 
 
         // if adjacent to enemy HQ, build a design studio and then do nothing else
-        if (rc.getLocation().isAdjacentTo(enemyHQ)) {
+        if (enemyHQ != null && rc.getLocation().isAdjacentTo(enemyHQ)) {
             if (!hasBuiltDesignSchool) {
                 // if we see a drone factory (fulfillment center), build a net gun
 
@@ -337,7 +337,9 @@ public strictfp class RobotPlayer {
         }
 
         // if stuck, build a drone factory and then stop moving
-        if (isStuck) {
+        // NOTE: If you're stuck very close to enemy HQ, don't do this since they'll just shoot drones down
+        // Being stuck very close to enemy HQ is probably due to enemy workers who will just move out of the way
+        if (isStuck && enemyHQ == null) {
             if (!hasBuiltFulfillmentCenter)
                 for (Direction dir : directions)
                     if (tryBuild(RobotType.FULFILLMENT_CENTER, dir))
@@ -759,7 +761,7 @@ public strictfp class RobotPlayer {
                 }
             }
             // if adjacent to enemy HQ, release payload
-            if (rc.getLocation().isAdjacentTo(enemyHQ)) {
+            if (enemyHQ != null && rc.getLocation().isAdjacentTo(enemyHQ)) {
                 if (rc.canDropUnit(currentDir.rotateRight()))
                 {
                     rc.dropUnit(currentDir.rotateRight());
