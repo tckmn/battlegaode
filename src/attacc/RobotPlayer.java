@@ -643,6 +643,15 @@ public strictfp class RobotPlayer {
         if (currentLoc.isAdjacentTo(hqLoc) && rc.canDigDirt(dirToHQ))
             rc.digDirt(dirToHQ);
 
+        // if any candidate tile is unoccupied and you are not adjacent to HQ, walk there
+        if (!currentLoc.isAdjacentTo(hqLoc)) {
+            for (MapLocation loc : candidateTiles) {
+                if (rc.canSenseLocation(loc) && rc.senseRobotAtLocation(loc) == null
+                        && currentLoc.isAdjacentTo(loc))
+                    tryMove(rc.getLocation().directionTo(loc));
+            }
+        }
+
         // see which of the locations has the smallest amount of dirt on it (so we can put dirt there)
         int minDirt = Integer.MAX_VALUE;
         MapLocation minDirtLocation = null;
