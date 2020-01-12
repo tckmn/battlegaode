@@ -570,7 +570,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runLandscaperAttacc() throws GameActionException {
-        // find enemy HQ and friendly net gun
+        // find enemy HQ
         MapLocation netGun = null;
         MapLocation designSchool = null;
         RobotInfo [] robots = rc.senseNearbyRobots();
@@ -580,6 +580,10 @@ public strictfp class RobotPlayer {
                 currentDir = rc.getLocation().directionTo(robot.location);
                 System.out.println("Found enemy HQ!");
             }
+        }
+        // now look for friendly net gun and design school ON ADJACENT TILES
+        robots = rc.senseNearbyRobots(2, rc.getTeam());
+        for (RobotInfo robot : robots) {
             if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam()) {
                 netGun = robot.location;
                 System.out.println("Found friendly net gun!");
