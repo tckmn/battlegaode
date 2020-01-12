@@ -21,6 +21,7 @@ public strictfp class RobotPlayer {
     static int hqMessageNumber = 18527548;
     static int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
     static int emergencyProteccRound = 500; // build entire wall, not just in square landscaper currently is
+    static int earlyProtecc = 4; // extra soup needed to start building wall early (units of soup/early round)
 
     static int turnCount;
     static MapLocation hqLoc;
@@ -240,7 +241,7 @@ public strictfp class RobotPlayer {
         // and start protecting in turn 150 if soup > 300 (more than net gun price)
         else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
             || canSenseEnemy(RobotType.LANDSCAPER)
-            || (rc.getTeamSoup() + rc.getRoundNum() * 3 >= 750)))
+            || (rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc)))
             minerProtecc();
         else
             minerGetSoup();
