@@ -490,6 +490,19 @@ public strictfp class RobotPlayer {
             }
         }
 
+        // if we see an enemy drone but no friendly net gun, stop building landscapers
+        boolean stopBuilding = false;
+        for (RobotInfo robot : robots) {
+            if (robot.type == RobotType.DELIVERY_DRONE && robot.team != rc.getTeam())
+                stopBuilding = true;
+        }
+        for (RobotInfo robot : robots) {
+            if ((robot.type == RobotType.NET_GUN || robot.type == RobotType.HQ)
+                    && robot.team == rc.getTeam())
+                stopBuilding = false;
+        }
+        if (stopBuilding) return;
+
         tryBuild(RobotType.LANDSCAPER, currentDir);
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft());
