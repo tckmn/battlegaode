@@ -239,7 +239,7 @@ public strictfp class RobotPlayer {
         // Last condition means that we always protect in round 250
         // and start protecting in turn 150 if soup > 300 (more than net gun price)
         else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
-            || canSeeEnemy(RobotType.LANDSCAPER)
+            || canSenseEnemy(RobotType.LANDSCAPER)
             || (rc.getTeamSoup() + rc.getRoundNum() * 3 >= 750)))
             minerProtecc();
         else
@@ -248,7 +248,7 @@ public strictfp class RobotPlayer {
 
     // routine to sense enemies of given type
     // use this more often so we don't have to keep rewriting it
-    static boolean canSeeEnemy(RobotType type) throws GameActionException {
+    static boolean canSenseEnemy(RobotType type) throws GameActionException {
         RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
         for (RobotInfo robot : nearbyRobots)
             if (robot.type == type && robot.getTeam() != rc.getTeam())
@@ -268,7 +268,9 @@ public strictfp class RobotPlayer {
             }
         }
 
+        /*
         // if we see a fulfillment center anywhere then build a net gun
+        // don't actually do this yet - wait until in a better position
         MapLocation nearbyFulfillmentCenter = null;
         for (RobotInfo robot : rc.senseNearbyRobots()) {
             if ((robot.type == RobotType.FULFILLMENT_CENTER || robot.type == RobotType.DELIVERY_DRONE)
@@ -288,6 +290,7 @@ public strictfp class RobotPlayer {
              || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
                 hasBuiltNetGun = true;
         }
+        */
 
 
         // if adjacent to enemy HQ, build a design studio and then do nothing else
@@ -318,7 +321,8 @@ public strictfp class RobotPlayer {
                 System.out.println("Move to annoying location");
                 goTo(annoyingLoc);
             }
-            else if (!hasBuiltNetGun && rc.getRoundNum() > 13 + designSchoolTurnBuilt) {
+            else if (!hasBuiltNetGun && 
+                (canSenseEnemy(RobotType.DELIVERY_DRONE) || (rc.getRoundNum() > 13 + designSchoolTurnBuilt))) {
                 System.out.println("Build net gun in annoying location");
                 Direction dir = rc.getLocation().directionTo(enemyHQ);
                 if (tryBuild(RobotType.NET_GUN, dir)
@@ -496,7 +500,7 @@ public strictfp class RobotPlayer {
     }
 
     static void runDesignSchool() throws GameActionException {
-        currentDir = rc.getLocation().directionTo(hqLoc); // for defensive design school, gets overridden on offense
+        currentDir = rc.getLocation().directionTo(hqLoc); // for defensive design school; this gets overridden on offense
         RobotInfo [] robots = rc.senseNearbyRobots();
 
         for (RobotInfo robot : robots) {
@@ -526,6 +530,13 @@ public strictfp class RobotPlayer {
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight().rotateRight());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft().rotateLeft());
+
+        // for defense, keep trying other squares as well
+        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16) {
+            tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateLeft());
+            tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateRight());
+            tryBuild(RobotType.LANDSCAPER, currentDir.opposite());
+        }
 
     }
 
@@ -558,7 +569,9 @@ public strictfp class RobotPlayer {
     }
 
     static void runLandscaperAttacc() throws GameActionException {
-        // find enemy HQ
+        // find enemy HQ and friendly net gun
+        MapLocation netGun = null;
+        MapLocation fulfillmentCenter = null;
         RobotInfo [] robots = rc.senseNearbyRobots();
         for (RobotInfo robot : robots) {
             if (robot.type == RobotType.HQ && robot.team != rc.getTeam()) {
@@ -566,12 +579,32 @@ public strictfp class RobotPlayer {
                 currentDir = rc.getLocation().directionTo(robot.location);
                 System.out.println("Found enemy HQ!");
             }
+            if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam())
+                netGun = robot.location;
+            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.team == rc.getTeam())
+                fulfillmentCenter = robot.location;
         }
+        // If there is a nearby net gun with dirt on it, remove the dirt from that
+        if (netGun != null) {
+            if (rc.canDigDirt(rc.getLocation().directionTo(netGun))) {
+                rc.digDirt(rc.getLocation().directionTo(netGun));
+                System.out.println("Removed dirt from friendly net gun!");
+            }
+        }
+        // also remove dirt from fulfillment centers
+        if (fulfillmentCenter != null) {
+            if (rc.canDigDirt(rc.getLocation().directionTo(fulfillmentCenter))) {
+                rc.digDirt(rc.getLocation().directionTo(fulfillmentCenter));
+                System.out.println("Removed dirt from friendly fulfillment center!");
+            }
+        }
+
         // pile on the dirt
         if (rc.canDepositDirt(currentDir)){
           rc.depositDirt(currentDir);
           System.out.println("I deposited dirt!");
         }
+
         // TODO: Would it be better to dig dirt from current location to mess up walls?
         if (rc.canDigDirt(Direction.CENTER)) {
           rc.digDirt(Direction.CENTER);
