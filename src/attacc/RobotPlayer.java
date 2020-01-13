@@ -18,7 +18,7 @@ public strictfp class RobotPlayer {
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
-    static int hqMessageNumber = 18527549;
+    static int hqMessageNumber = 18527559;
     static int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
     static int emergencyProteccRound = 500; // build entire wall, not just in square landscaper currently is
     static int earlyProtecc = 4; // extra soup needed to start building wall early (units of soup/early round)
