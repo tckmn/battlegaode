@@ -18,7 +18,7 @@ public strictfp class RobotPlayer {
     static RobotType[] spawnedByMiner = {RobotType.REFINERY, RobotType.VAPORATOR, RobotType.DESIGN_SCHOOL,
             RobotType.FULFILLMENT_CENTER, RobotType.NET_GUN};
 
-    static int hqMessageNumber = 18527548;
+    static int hqMessageNumber = 18527549;
     static int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
     static int emergencyProteccRound = 500; // build entire wall, not just in square landscaper currently is
     static int earlyProtecc = 4; // extra soup needed to start building wall early (units of soup/early round)
@@ -584,6 +584,12 @@ public strictfp class RobotPlayer {
         for (RobotInfo robot : neighbors)
             if (robot.getType() == RobotType.MINER && robot.getTeam() == rc.getTeam()){
                 Direction dirToMiner = rc.getLocation().directionTo(robot.getLocation());
+                // preferentially build on tiles that are flooded or at elevation > 3 + miner elevation
+                MapLocation rightLoc = rc.getLocation().add(dirToMiner.rotateRight());
+                if ((rc.senseFlooding(rightLoc) 
+                        || Math.abs(rc.senseElevation(rightLoc) - rc.senseElevation(rc.getLocation().add(dirToMiner))) > 3)
+                        && tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateRight()))
+                    hasBuiltDrone = true;
                 if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateLeft()))
                     hasBuiltDrone = true;
                 if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateRight()))
