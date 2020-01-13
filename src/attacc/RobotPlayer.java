@@ -390,7 +390,7 @@ public strictfp class RobotPlayer {
             for (int y = -k; y <= k; y ++) {
                 if (x*x + y*y <= Math.min(rSq, minDistance)) {
                     MapLocation possibleLoc = rc.getLocation().translate(x,y);
-                    if (rc.senseSoup(possibleLoc) > 0) {
+                    if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
                         // go to that location and break out of this loop
                         System.out.println("Found soup at " + possibleLoc);
                         closestSoup = possibleLoc;
