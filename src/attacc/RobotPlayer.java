@@ -177,7 +177,7 @@ public strictfp class RobotPlayer {
             if (rc.canSubmitTransaction(message, 1))
                 rc.submitTransaction(message, 1);
         }
-        MapLocation soupLoc = findNearestSoup(6);
+        MapLocation soupLoc = findNearestSoup();
         if (soupLoc != null) lastSoupMined = soupLoc;
         // build only 3 miners (5 if the game goes on too long)
         // TODO: For all miners except the first, spawn in direction of nearest soup
@@ -192,7 +192,7 @@ public strictfp class RobotPlayer {
                 int X = rc.getMapWidth()-1; // correct for 0 indexing of map
                 targetLoc = new MapLocation(X - loc.x, loc.y);
             } else {
-                targetLoc = findNearestSoup(6);
+                targetLoc = findNearestSoup();
                 if (targetLoc == null && lastSoupMined != null) targetLoc = lastSoupMined;
             }
             Direction spawnDir = loc.directionTo(targetLoc);
@@ -380,22 +380,27 @@ public strictfp class RobotPlayer {
         goTo(rc.getLocation().directionTo(hqLoc.translate(0,-4)));
     }
 
-    static MapLocation findNearestSoup(int k) throws GameActionException {
-        for (int n = 1; n <= k; n ++) {
-            for (int x = -n; x <= n; x ++){
-                for (int y = -n; y <= n; y ++) {
+    // NOTE: Make sure this doesn't throw exceptions!
+    static MapLocation findNearestSoup() throws GameActionException {
+        int rSq = rc.getCurrentSensorRadiusSquared();
+        int k = (int)(Math.sqrt(rSq));
+        MapLocation closestSoup = null;
+        int minDistance = Integer.MAX_VALUE;
+        for (int x = -k; x <= k; x ++){
+            for (int y = -k; y <= k; y ++) {
+                if (x*x + y*y <= Math.min(rSq, minDistance)) {
                     MapLocation possibleLoc = rc.getLocation().translate(x,y);
-                    System.out.println("Is there soup at " + possibleLoc + "?");
-                    if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
+                    if (rc.senseSoup(possibleLoc) > 0) {
                         // go to that location and break out of this loop
-                        System.out.println("Found soup; now going to " + possibleLoc);
-                        targetLoc = possibleLoc;
-                        return targetLoc;
+                        System.out.println("Found soup at " + possibleLoc);
+                        closestSoup = possibleLoc;
+                        minDistance = x*x + y*y;
                     }
                 }
             }
         }
-        return null;
+        System.out.println("Closest soup is at " + closestSoup);
+        return closestSoup;
     }
 
     static void minerGetSoup() throws GameActionException {
@@ -455,6 +460,13 @@ public strictfp class RobotPlayer {
         // This is wasteful in terms of bytecodes but hopefully we have plenty
         // TODO: Replace this with findNearestSoup (above)
         MapLocation myLoc = rc.getLocation();
+        MapLocation soupLoc = findNearestSoup();
+        if (soupLoc != null) {
+            targetLoc = soupLoc;
+            goTo(soupLoc);
+            return;
+        }
+        /*
         for (int n = 1; n <= 5; n ++) {
             for (int x = -n; x <= n; x ++){
                 for (int y = -n; y <= n; y ++) {
@@ -470,6 +482,7 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+        */
         // if it can't find soup, go to last location where it found soup (if it exists) or move randomly
         if (lastSoupMined != null) {
             System.out.println("Going to last soup mined");
