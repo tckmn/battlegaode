@@ -321,7 +321,7 @@ public strictfp class RobotPlayer {
             MapLocation annoyingLoc = enemyHQ.add(enemyHQ.directionTo(designSchoolLoc).opposite());
             // TODO: Make this loop structure better
             // build the net gun in suboptimal location if you see an enemy drone
-            if (canSenseEnemy(RobotType.DELIVERY_DRONE)) {
+            if (canSenseEnemy(RobotType.DELIVERY_DRONE) && !hasBuiltNetGun) {
                 System.out.println("Build net gun in potentially suboptimal location");
                 Direction dir = rc.getLocation().directionTo(enemyHQ);
                 if (tryBuild(RobotType.NET_GUN, dir)
