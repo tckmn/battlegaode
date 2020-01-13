@@ -240,9 +240,13 @@ public strictfp class RobotPlayer {
         // getTeamSoup() + getroundNum() * 3 > 750
         // Last condition means that we always protect in round 250
         // and start protecting in turn 150 if soup > 300 (more than net gun price)
+
+        // modification: Don't go into early protection mode unless we have at least 200 soup
+        // We need to focus on attack first since we are fundamentally a rush bot
+        // 200 means will take precedence over net guns but not landscapers
         else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
-            || canSenseEnemy(RobotType.LANDSCAPER)
-            || (rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc)))
+            || rc.getTeamSoup() >= 200 && (canSenseEnemy(RobotType.LANDSCAPER)
+            || (rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc))))
             minerProtecc();
         else
             minerGetSoup();
