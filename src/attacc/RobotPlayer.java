@@ -319,6 +319,18 @@ public strictfp class RobotPlayer {
         if (hasBuiltDesignSchool) {
             System.out.println("Already built design school, now annoy opponent");
             MapLocation annoyingLoc = enemyHQ.add(enemyHQ.directionTo(designSchoolLoc).opposite());
+            // TODO: Make this loop structure better
+            // build the net gun in suboptimal location if you see an enemy drone
+            if (canSenseEnemy(RobotType.DELIVERY_DRONE)) {
+                System.out.println("Build net gun in potentially suboptimal location");
+                Direction dir = rc.getLocation().directionTo(enemyHQ);
+                if (tryBuild(RobotType.NET_GUN, dir)
+                 || tryBuild(RobotType.NET_GUN, dir.rotateLeft())
+                 || tryBuild(RobotType.NET_GUN, dir.rotateRight())
+                 || tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
+                 || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
+                    hasBuiltNetGun = true;
+            }
             if (!rc.getLocation().equals(annoyingLoc)) {
                 System.out.println("Move to annoying location");
                 goTo(annoyingLoc);
@@ -327,11 +339,13 @@ public strictfp class RobotPlayer {
                 (canSenseEnemy(RobotType.DELIVERY_DRONE) || (rc.getRoundNum() > 13 + designSchoolTurnBuilt))) {
                 System.out.println("Build net gun in annoying location");
                 Direction dir = rc.getLocation().directionTo(enemyHQ);
-                if (tryBuild(RobotType.NET_GUN, dir)
-                 || tryBuild(RobotType.NET_GUN, dir.rotateLeft())
-                 || tryBuild(RobotType.NET_GUN, dir.rotateRight())
-                 || tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
-                 || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
+                MapLocation currentLoc = rc.getLocation();
+                // Note: The maximally annoying locations are those not eligible to be taken by our landscapers
+                if (currentLoc.add(dir.rotateLeft().rotateLeft()).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
+                    || currentLoc.add(dir.rotateRight().rotateRight()).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight())
+                    || currentLoc.add(dir.rotateLeft()).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir.rotateLeft())
+                    || currentLoc.add(dir.rotateRight()).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir.rotateRight())
+                    || currentLoc.add(dir).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir))
                     hasBuiltNetGun = true;
             }
             return;
