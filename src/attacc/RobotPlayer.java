@@ -262,6 +262,19 @@ public strictfp class RobotPlayer {
         return false;
     }
 
+    static MapLocation getNearestEnemyHQPossibility() throws GameActionException {
+        MapLocation currentLoc = rc.getLocation();
+        MapLocation nearestEnemyHQ = null;
+        int distanceToEnemyHQ = Integer.MAX_VALUE;
+        for (MapLocation possibility : enemyHQPossibilities) {
+            if (currentLoc.distanceSquaredTo(possibility) < distanceToEnemyHQ) {
+                nearestEnemyHQ = possibility;
+                distanceToEnemyHQ = currentLoc.distanceSquaredTo(possibility);
+            }
+        }
+        return nearestEnemyHQ;
+    }
+
     static void minerAttacc() throws GameActionException {
 
         // try to find enemy HQ
@@ -369,7 +382,7 @@ public strictfp class RobotPlayer {
         // if we can see there is nothing at enemyHQPossiblities.get(0), remove from list
         // otherwise go there
         // we can sense at a distance, so no need to physically walk there just to see that it's empty
-        MapLocation nextTarget = enemyHQPossibilities.get(0);
+        MapLocation nextTarget = getNearestEnemyHQPossibility();
         boolean notHere;
         if (rc.canSenseLocation(nextTarget)) {
             RobotInfo robot = rc.senseRobotAtLocation(nextTarget);
@@ -381,9 +394,9 @@ public strictfp class RobotPlayer {
             notHere = false;
         }
         if (notHere)
-            enemyHQPossibilities.remove(0);
+            enemyHQPossibilities.remove(nextTarget);
         
-        goTo(enemyHQPossibilities.get(0)); // may have changed due to removal
+        goTo(getNearestEnemyHQPossibility()); // may have changed due to removal
 
         if (tryMove(currentDir))
           System.out.println("I moved!");
@@ -813,11 +826,11 @@ public strictfp class RobotPlayer {
             }
 
             // otherwise, try to go to the next possible enemy HQ location
-            if (!(rc.getLocation().equals(enemyHQPossibilities.get(0))))
-                goTo(enemyHQPossibilities.get(0));
+            if (!(rc.getLocation().equals(getNearestEnemyHQPossibility())))
+                goTo(getNearestEnemyHQPossibility());
             // if already at enemy HQ location, then there is nothing there, so we have the wrong spot
             else
-                enemyHQPossibilities.remove(0);
+                enemyHQPossibilities.remove(getNearestEnemyHQPossibility());
         } else if (!hasTransportedMiner) {
             // pick up nearby miner
             System.out.println("looking for nearby robots!");
