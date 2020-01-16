@@ -203,10 +203,10 @@ public class Miner extends Unit {
     }
 
     void minerProtecc() throws GameActionException {
-        if(rc.getLocation().equals(hqLoc.translate(0,-4)))
-            if(tryBuild(RobotType.DESIGN_SCHOOL, Direction.NORTH))
+        if(rc.getLocation().equals(hqLoc.translate(0,-2)))
+            if(tryBuild(RobotType.DESIGN_SCHOOL, Direction.SOUTH))
                 hasBuiltDesignSchool = true;
-        nav.goTo(rc.getLocation().directionTo(hqLoc.translate(0,-4)));
+        nav.goTo(rc.getLocation().directionTo(hqLoc.translate(0,-2)));
     }
 
     void minerGetSoup() throws GameActionException {
