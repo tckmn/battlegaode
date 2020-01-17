@@ -202,13 +202,43 @@ public class Miner extends Unit {
           currentDir = Util.randomDirection();
     }
 
+    boolean[] dirsTried = {false, false, false, false};
+    Direction[] dirsToCheck = {Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST};
+
+    
     void minerProtecc() throws GameActionException {
         if(rc.getLocation().equals(hqLoc.translate(0,-2)))
             if(tryBuild(RobotType.DESIGN_SCHOOL, Direction.SOUTH))
                 hasBuiltDesignSchool = true;
-        nav.goTo(rc.getLocation().directionTo(hqLoc.translate(0,-2)));
+            else if (tryBuild(RobotType.DESIGN_SCHOOL, Direction.WEST))
+                hasBuiltDesignSchool = true;
+            else if (tryBuild(RobotType.DESIGN_SCHOOL, Direction.EAST))
+                hasBuiltDesignSchool = true;       
+        nav.goTo(rc.getLocation().directionTo(hqLoc.translate(0,-2)));       
+    }
+/*  
+//pseudo code for new minerPRotecc method  
+void minerProtecc() throws GameActionException {
+        for(int counter = 0, counter < 4, counter++)
+        {
+            if !dirsTried[counter]
+                checkDir(counter)
+        }
     }
 
+    void checkDir(counter) throws GameActionException{
+        //is dirs[counter] on maps
+            //if not on map
+                dirsTried[counter] = true;
+        if (not at location){
+            goTo(location)
+            if(stuck) 
+                dirsTried[counter]= true;
+        }
+        //try build x3 in all three directions
+        dirsTried[counter]= true;
+    }
+*/
     void minerGetSoup() throws GameActionException {
         System.out.println("Design school is built; now just search for soup");
         System.out.println("Current soup carrying: " + rc.getSoupCarrying());
@@ -236,6 +266,7 @@ public class Miner extends Unit {
             tryMine(dir);
             tryRefine(dir);
         }
+        
 
         // if reached home, set target loc back to null
         if (rc.getLocation().isAdjacentTo(hqLoc) && hqLoc.equals(targetLoc))
