@@ -35,22 +35,8 @@ public class Miner extends Unit {
 
         recentSoup[rc.getRoundNum() % 5] = rc.getSoupCarrying();
         recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
-        // can't move for first 10 turns anyway, so don't check until then
-        if (turnCount > 15) {
-            // if soup is stuck at the same amount and >= 3 locations in recentLocs match current one
-            // then robot is stuck
-            int locationMatches = 0;
-            for (MapLocation loc : recentLocs)
-                if (loc.equals(rc.getLocation()))
-                    locationMatches ++;
-            isStuck = (locationMatches >= 3);
-            int currentSoup = rc.getSoupCarrying();
-            for (int pastSoup : recentSoup){
-                if (pastSoup != currentSoup) {
-                    isStuck = false;
-                }
-            }
-        }
+
+        checkIfStuck();
         if (isStuck)
             System.out.println("Woe is I; I'm stuck!");
         if (firstMiner)
@@ -73,6 +59,25 @@ public class Miner extends Unit {
             minerGetSoup();
     }
 
+    public void checkIfStuck() {
+        // can't move for first 10 turns anyway, so don't check until then
+        if (turnCount > 15) {
+            // if soup is stuck at the same amount and >= 3 locations in recentLocs match current one
+            // then robot is stuck
+            int locationMatches = 0;
+            for (MapLocation loc : recentLocs)
+                if (loc.equals(rc.getLocation()))
+                    locationMatches ++;
+            isStuck = (locationMatches >= 3);
+            int currentSoup = rc.getSoupCarrying();
+            for (int pastSoup : recentSoup){
+                if (pastSoup != currentSoup) {
+                    isStuck = false;
+                }
+            }
+        }
+    }
+
     void minerAttacc() throws GameActionException {
 
         // try to find enemy HQ
@@ -84,30 +89,6 @@ public class Miner extends Unit {
                 System.out.println("Found enemy HQ!");
             }
         }
-
-        /*
-        // if we see a fulfillment center anywhere then build a net gun
-        // don't actually do this yet - wait until in a better position
-        MapLocation nearbyFulfillmentCenter = null;
-        for (RobotInfo robot : rc.senseNearbyRobots()) {
-            if ((robot.type == RobotType.FULFILLMENT_CENTER || robot.type == RobotType.DELIVERY_DRONE)
-                    && robot.getTeam() != rc.getTeam()){
-                nearbyFulfillmentCenter = robot.getLocation();
-            }
-        }
-        if (hasBuiltNetGun)
-            nearbyFulfillmentCenter = null;
-
-        if (nearbyFulfillmentCenter != null) {
-            Direction dir = rc.getLocation().directionTo(nearbyFulfillmentCenter);
-            if (tryBuild(RobotType.NET_GUN, dir)
-             || tryBuild(RobotType.NET_GUN, dir.rotateLeft())
-             || tryBuild(RobotType.NET_GUN, dir.rotateRight())
-             || tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
-             || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
-                hasBuiltNetGun = true;
-        }
-        */
 
 
         // if adjacent to enemy HQ, build a design studio and then do nothing else
@@ -203,44 +184,57 @@ public class Miner extends Unit {
     }
 
     boolean[] dirsTried = {false, false, false, false};
-    Direction[] dirsToCheck = {Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST};
+    Direction[] dirsToCheck = {Direction.SOUTH, Direction.EAST, Direction.NORTH, Direction.WEST};
 
     
-    void minerProtecc() throws GameActionException {
-        if(rc.getLocation().equals(hqLoc.translate(0,-2)))
-            if(tryBuild(RobotType.DESIGN_SCHOOL, Direction.SOUTH))
+    void tryBuildDefensiveDesignSchool(Direction dir) throws GameActionException {
+        if(rc.getLocation().equals(hqLoc.add(dir).add(dir)))
+            if(tryBuild(RobotType.DESIGN_SCHOOL, dir))
                 hasBuiltDesignSchool = true;
-            else if (tryBuild(RobotType.DESIGN_SCHOOL, Direction.WEST))
+            else if (tryBuild(RobotType.DESIGN_SCHOOL, dir.rotateRight()))
                 hasBuiltDesignSchool = true;
-            else if (tryBuild(RobotType.DESIGN_SCHOOL, Direction.EAST))
-                hasBuiltDesignSchool = true;       
-        nav.goTo(rc.getLocation().directionTo(hqLoc.translate(0,-2)));       
+            else if (tryBuild(RobotType.DESIGN_SCHOOL, dir.rotateRight().rotateRight()))
+                hasBuiltDesignSchool = true;
+            else if (tryBuild(RobotType.DESIGN_SCHOOL, dir.rotateLeft()))
+                hasBuiltDesignSchool = true;
+            else if (tryBuild(RobotType.DESIGN_SCHOOL, dir.rotateLeft().rotateLeft()))
+                hasBuiltDesignSchool = true;
     }
-/*  
-//pseudo code for new minerPRotecc method  
-void minerProtecc() throws GameActionException {
-        for(int counter = 0, counter < 4, counter++)
+    
+
+    //pseudo code for new minerProtecc method  
+    void minerProtecc() throws GameActionException {
+        System.out.println("In protection mode; trying to build defensive design school");
+        for(int counter = 0; counter < 4; counter++)
         {
-            if !dirsTried[counter]
-                checkDir(counter)
+            if (!dirsTried[counter]) {
+                checkDir(counter);
+                break;
+            }
         }
     }
 
-    void checkDir(counter) throws GameActionException{
-        //is dirs[counter] on maps
-            //if not on map
-                dirsTried[counter] = true;
-        if (not at location){
-            goTo(location)
-            if(stuck) 
-                dirsTried[counter]= true;
+    void checkDir(int counter) throws GameActionException{
+        Direction dir = dirsToCheck[counter];
+        MapLocation loc = hqLoc.add(dir).add(dir);
+        if (!(rc.onTheMap(loc))) {
+            dirsTried[counter] = true;
+            return;
         }
-        //try build x3 in all three directions
-        dirsTried[counter]= true;
+        if (!rc.getLocation().equals(loc)){
+            nav.goTo(loc);
+            // recheck to see if still stuck
+            checkIfStuck();
+            if(isStuck) 
+                dirsTried[counter] = true;
+        } else if (rc.getCooldownTurns() < 1 && rc.getTeamSoup() >= 150) {
+            tryBuildDefensiveDesignSchool(dir);
+            dirsTried[counter] = true;
+        }
     }
-*/
+
     void minerGetSoup() throws GameActionException {
-        System.out.println("Design school is built; now just search for soup");
+        //System.out.println("Design school is built; now just search for soup");
         System.out.println("Current soup carrying: " + rc.getSoupCarrying());
         // if adjacent to HQ and many landscapers nearby, get away from HQ so landscapers can move in
         // move into water if necessary to get out of the way
