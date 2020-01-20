@@ -17,6 +17,8 @@ public class Miner extends Unit {
     boolean firstMiner = false;
     boolean secondMiner = false;
 
+    boolean useBetterNav = false;
+
     public Miner(RobotController r) {
         super(r);
     }
@@ -108,6 +110,16 @@ public class Miner extends Unit {
                         designSchoolLoc = rc.getLocation().add(currentDir.rotateLeft());
                         designSchoolTurnBuilt = rc.getRoundNum();
                     }
+                    if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight().rotateRight())) {
+                        hasBuiltDesignSchool = true;
+                        designSchoolLoc = rc.getLocation().add(currentDir.rotateRight().rotateRight());
+                        designSchoolTurnBuilt = rc.getRoundNum();
+                    }
+                    if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft().rotateLeft())) {
+                        hasBuiltDesignSchool = true;
+                        designSchoolLoc = rc.getLocation().add(currentDir.rotateLeft().rotateLeft());
+                        designSchoolTurnBuilt = rc.getRoundNum();
+                    }
                 }
                 return;
             } 
@@ -155,16 +167,23 @@ public class Miner extends Unit {
         // if stuck, build a drone factory and then stop moving
         // NOTE: If you're stuck very close to enemy HQ, don't do this since they'll just shoot drones down
         // Being stuck very close to enemy HQ is probably due to enemy workers who will just move out of the way
-        if (isStuck && enemyHQ == null) {
-            if (!hasBuiltFulfillmentCenter)
-                for (Direction dir : Util.directions)
-                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir)) {
-                        System.out.println("Building fulfillment center");
-                        hasBuiltFulfillmentCenter = true;
-                        hasTransmittedEnemyHQLocs = comms.transmitEnemyHQ(enemyHQPossibilities);
+        if (isStuck) {
+            if (enemyHQ == null) {
+                if (!hasBuiltFulfillmentCenter) {
+                    for (Direction dir : Util.directions) {
+                        if (tryBuild(RobotType.FULFILLMENT_CENTER, dir)) {
+                            System.out.println("Building fulfillment center");
+                            hasBuiltFulfillmentCenter = true;
+                            hasTransmittedEnemyHQLocs = comms.transmitEnemyHQ(enemyHQPossibilities);
+                        }
                     }
-            return;
+                }
+                return;
+            }
+            else
+                useBetterNav = true;
         }
+
 
         // if we can see there is nothing at enemyHQPossiblities.get(0), remove from list
         // otherwise go there
@@ -183,7 +202,10 @@ public class Miner extends Unit {
         if (notHere)
             enemyHQPossibilities.remove(nextTarget);
         
-        nav.goTo(getNearestEnemyHQPossibility()); // may have changed due to removal
+        if (useBetterNav)
+            nav.navTo(getNearestEnemyHQPossibility());
+        else
+            nav.goTo(getNearestEnemyHQPossibility()); // may have changed due to removal
 
         if (nav.tryMove(currentDir))
           System.out.println("I moved!");
@@ -296,6 +318,15 @@ public class Miner extends Unit {
             return;
         }
 
+        // TODO: also make sure there is landscaper nearby
+        if (isStuck && rc.getRoundNum() > emergencyProteccRound && rc.getSoupCarrying() == 0 && rc.getLocation().isAdjacentTo(hqLoc)) {
+            System.out.println("Stuck and in the way -- probably providing negative utility to team");
+            Direction dirAwayFromHQ = rc.getLocation().directionTo(hqLoc).opposite();
+            if (!(nav.tryMove(dirAwayFromHQ) || nav.tryMove(dirAwayFromHQ.rotateLeft()) || nav.tryMove(dirAwayFromHQ.rotateRight())
+                || nav.tryMove(dirAwayFromHQ.rotateLeft().rotateLeft()) || nav.tryMove(dirAwayFromHQ.rotateRight().rotateRight())))
+                rc.disintegrate();
+        }
+
         // This is wasteful in terms of bytecodes but hopefully we have plenty
         // TODO: Replace this with findNearestSoup (above)
         MapLocation myLoc = rc.getLocation();
@@ -345,6 +376,7 @@ public class Miner extends Unit {
                 nav.tryMove();
             }
         }
+
     }
 
     /**

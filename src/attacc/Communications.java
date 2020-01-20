@@ -10,6 +10,7 @@ public class Communications {
     // all messages from our team should start with this so we can tell them apart
     static final int hqMessageNumber = 18537559;
     static final int enemyHQMessageNumber = 848415678;
+    static final int soupLocationMessageNumber = 45787456;
 
     public Communications(RobotController r) {
         rc = r;

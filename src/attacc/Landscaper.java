@@ -148,9 +148,11 @@ public class Landscaper extends Unit {
         ArrayList<MapLocation> candidateTiles = new ArrayList<MapLocation>(8);
         for (Direction dir : Util.directions) {
             MapLocation loc = currentLoc.add(dir);
-            if (loc.isAdjacentTo(hqLoc) && !loc.equals(hqLoc))
+            if (rc.onTheMap(loc) && loc.isAdjacentTo(hqLoc) && !loc.equals(hqLoc))
                 candidateTiles.add(loc);
         }
+        if (currentLoc.isAdjacentTo(hqLoc))
+            candidateTiles.add(currentLoc);
         // if HQ is covered in dirt, removing it is highest priority
         if (currentLoc.isAdjacentTo(hqLoc) && rc.canDigDirt(dirToHQ))
             rc.digDirt(dirToHQ);

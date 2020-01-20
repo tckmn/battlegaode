@@ -135,7 +135,7 @@ public class Navigation {
 
         System.out.println("Bytecodes used in setup and distance initialization: " + (Clock.getBytecodeNum() - initialBytecodeCount));
 
-        
+        /*
         int [] dummy = {1,2,3,4,5,6,7,8,9,10};
         int dummy0 = 3;
         int dummy1 = 5;
@@ -163,7 +163,8 @@ public class Navigation {
         isDummy0 = isDummy1 && isDummy3 && Math.abs(dummy1 - dummy2) <= 3;
         System.out.println((Clock.getBytecodeNum() - initialBytecodeCount));
         System.out.println("Bytecodes used in setup and dummy testing: " + (Clock.getBytecodeNum() - initialBytecodeCount));
-        
+        */
+
 
         // now iterate
         for (int counter = 0; counter < iterations; counter ++) {
@@ -217,15 +218,15 @@ public class Navigation {
             System.out.println(minDistance);
         }
         
-        if (validEdges[1][radius-1][radius] && distances[radius][radius-1] < minDistance) {
-            bestX = radius;
-            bestY = radius-1;
+        if (validEdges[1][radius-1][radius] && distances[radius-1][radius] < minDistance) {
+            bestX = radius-1;
+            bestY = radius;
             minDistance = distances[radius][radius-1];
             System.out.println(minDistance);
         }
-        if (validEdges[1][radius][radius] && distances[radius][radius+1] < minDistance) {
-            bestX = radius;
-            bestY = radius+1;
+        if (validEdges[1][radius][radius] && distances[radius+1][radius] < minDistance) {
+            bestX = radius+1;
+            bestY = radius;
             minDistance = distances[radius][radius+1];
             System.out.println(minDistance);
         }
