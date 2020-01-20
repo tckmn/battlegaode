@@ -10,7 +10,7 @@ public class Robot {
     MapLocation lastSoupMined = null; // also used for HQ spawning miners, so can't put in Miner.java
 
     int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
-    int emergencyProteccRound = 500; // build entire wall, not just in square landscaper currently is
+    int emergencyProteccRound = 450; // needs to be before first sea level rise
     int earlyProtecc = 4; // extra soup needed to start building wall early (units of soup/early round)
 
     MapLocation enemyHQ = null;

@@ -10,6 +10,7 @@ public class Miner extends Unit {
     int minersBuilt = 0;
     boolean hasBuiltDesignSchool = false;
     boolean hasBuiltFulfillmentCenter = false;
+    boolean hasTransmittedEnemyHQLocs = false;
     boolean hasBuiltNetGun = false;
     int designSchoolTurnBuilt = -1;
 
@@ -147,14 +148,21 @@ public class Miner extends Unit {
             return;
         }
 
+        if (hasBuiltFulfillmentCenter && !hasTransmittedEnemyHQLocs) {
+            hasTransmittedEnemyHQLocs = comms.transmitEnemyHQ(enemyHQPossibilities);
+        }
+
         // if stuck, build a drone factory and then stop moving
         // NOTE: If you're stuck very close to enemy HQ, don't do this since they'll just shoot drones down
         // Being stuck very close to enemy HQ is probably due to enemy workers who will just move out of the way
         if (isStuck && enemyHQ == null) {
             if (!hasBuiltFulfillmentCenter)
                 for (Direction dir : Util.directions)
-                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir))
+                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir)) {
+                        System.out.println("Building fulfillment center");
                         hasBuiltFulfillmentCenter = true;
+                        hasTransmittedEnemyHQLocs = comms.transmitEnemyHQ(enemyHQPossibilities);
+                    }
             return;
         }
 
@@ -227,7 +235,7 @@ public class Miner extends Unit {
             checkIfStuck();
             if(isStuck) 
                 dirsTried[counter] = true;
-        } else if (rc.getCooldownTurns() < 1 && rc.getTeamSoup() >= 150) {
+        } else if (rc.isReady() && rc.getTeamSoup() >= 150) {
             tryBuildDefensiveDesignSchool(dir);
             dirsTried[counter] = true;
         }

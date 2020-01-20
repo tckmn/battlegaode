@@ -2,7 +2,8 @@ package attacc;
 import battlecode.common.*;
 
 public class DeliveryDrone extends Unit {
-    static boolean hasTransportedMiner = false;
+    boolean hasTransportedMiner = false;
+    boolean hasReceivedEnemyHQLocations = false;
 
     public DeliveryDrone(RobotController r) {
         super(r);
@@ -11,6 +12,10 @@ public class DeliveryDrone extends Unit {
     public void takeTurn() throws GameActionException {
         super.takeTurn();
 
+        if (!hasReceivedEnemyHQLocations) {
+            enemyHQPossibilities = comms.receiveEnemyHQ();
+            hasReceivedEnemyHQLocations = true;
+        }
         if (rc.isCurrentlyHoldingUnit()){
 
             // try to find enemy HQ
