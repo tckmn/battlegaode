@@ -60,6 +60,12 @@ public class Landscaper extends Unit {
             }
         }
 
+        // if not adjacent to enemy HQ, try to go there and otherwise dig dirt (don't deposit except on enemy HQ)
+        if (enemyHQ == null || !rc.getLocation().isAdjacentTo(enemyHQ)) {
+            nav.goTo(enemyHQ);
+            if (rc.isReady() && currentDir != null) rc.digDirt(currentDir.opposite());
+        }
+
         // pile on the dirt
         if (rc.canDepositDirt(currentDir)){
           rc.depositDirt(currentDir);
