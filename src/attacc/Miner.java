@@ -312,7 +312,6 @@ public class Miner extends Unit {
                 targetLoc = hqLoc;
         }
 
-
         if (targetLoc != null){
             nav.goTo(targetLoc);
             return;
@@ -337,7 +336,7 @@ public class Miner extends Unit {
         // TODO: Replace this with findNearestSoup (above)
         MapLocation myLoc = rc.getLocation();
         MapLocation soupLoc = findNearestSoup();
-        if (soupLoc != null) {
+        if (soupLoc != null && !isStuck) {
             targetLoc = soupLoc;
             nav.goTo(soupLoc);
             return;

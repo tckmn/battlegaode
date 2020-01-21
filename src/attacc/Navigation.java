@@ -71,19 +71,23 @@ public class Navigation {
 
     // navigate towards a particular location
     boolean goTo(MapLocation destination) throws GameActionException {
-        System.out.println("Trying to go to " + destination);
-        MapLocation myLoc = rc.getLocation();
-        double x = destination.x - myLoc.x;
-        double y = destination.y - myLoc.y;
-        double actualAngle = Math.atan2(y, x);
-        Direction dir = myLoc.directionTo(destination);
-        double dirAngle = Math.atan2(dir.dy, dir.dx);
-        double difference = (actualAngle - dirAngle + 2 * Math.PI) % (2 * Math.PI);
-        System.out.println(difference);
-        if (difference < Math.PI)
-            return goTo(dir, true);
-        else
-            return goTo(dir, false);
+        if (Clock.getBytecodesLeft() > 7000 && rc.getType() != RobotType.DELIVERY_DRONE) // if we have time, do more intelligent navigation
+            return navTo(destination);
+        else {
+            System.out.println("Trying to go to " + destination);
+            MapLocation myLoc = rc.getLocation();
+            double x = destination.x - myLoc.x;
+            double y = destination.y - myLoc.y;
+            double actualAngle = Math.atan2(y, x);
+            Direction dir = myLoc.directionTo(destination);
+            double dirAngle = Math.atan2(dir.dy, dir.dx);
+            double difference = (actualAngle - dirAngle + 2 * Math.PI) % (2 * Math.PI);
+            System.out.println(difference);
+            if (difference < Math.PI)
+                return goTo(dir, true);
+            else
+                return goTo(dir, false);
+        }
     }
 
     // more intelligent navigation (for non-drones)
