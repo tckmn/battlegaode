@@ -14,7 +14,7 @@ public class Unit extends Robot {
 
     public Unit(RobotController r) {
         super(r);
-        nav = new Navigation(rc);
+        nav = new UnrolledNavigation(rc);
     }
 
     public void takeTurn() throws GameActionException {

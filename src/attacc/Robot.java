@@ -18,7 +18,7 @@ public class Robot {
 
     MapLocation hqLoc;
     ArrayList<MapLocation> enemyHQPossibilities = new ArrayList<MapLocation>(3);
-
+    ArrayList<MapLocation> soupLocations = new ArrayList<MapLocation>();
 
     public Robot(RobotController r) {
         this.rc = r;

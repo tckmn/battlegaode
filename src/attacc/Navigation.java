@@ -116,13 +116,16 @@ public class Navigation {
         // figure out which edges are valid
         // This is a 4 by (n-1) by (n-1) array where the first entry loops over the edges {\,-,/,|}
         // Note: This omits some edges around the top right of the grid but oh well (for now)
-        boolean [][][] validEdges = new boolean [4][n-1][n-1];
+        boolean [][] validEdges0 = new boolean [n-1][n-1];
+        boolean [][] validEdges1 = new boolean [n-1][n-1];
+        boolean [][] validEdges2 = new boolean [n-1][n-1];
+        boolean [][] validEdges3 = new boolean [n-1][n-1];
         for (int x = 0; x < n-1; x ++) {
             for (int y = 0; y < n-1; y ++) {
-                validEdges[0][x][y] = (validLocs[x][y+1] && validLocs[x+1][y] && Math.abs(elevations[x][y+1] - elevations[x+1][y]) <= 3);
-                validEdges[1][x][y] = (validLocs[x][y] && validLocs[x+1][y] && Math.abs(elevations[x][y] - elevations[x+1][y]) <= 3);
-                validEdges[2][x][y] = (validLocs[x][y] && validLocs[x+1][y+1] && Math.abs(elevations[x][y] - elevations[x+1][y+1]) <= 3);
-                validEdges[3][x][y] = (validLocs[x][y] && validLocs[x][y+1] && Math.abs(elevations[x][y] - elevations[x][y+1]) <= 3);
+                validEdges0[x][y] = (validLocs[x][y+1] && validLocs[x+1][y] && Math.abs(elevations[x][y+1] - elevations[x+1][y]) <= 3);
+                validEdges1[x][y] = (validLocs[x][y] && validLocs[x+1][y] && Math.abs(elevations[x][y] - elevations[x+1][y]) <= 3);
+                validEdges2[x][y] = (validLocs[x][y] && validLocs[x+1][y+1] && Math.abs(elevations[x][y] - elevations[x+1][y+1]) <= 3);
+                validEdges3[x][y] = (validLocs[x][y] && validLocs[x][y+1] && Math.abs(elevations[x][y] - elevations[x][y+1]) <= 3);
             }
         }
         System.out.println("Bytecodes used in setup: " + (Clock.getBytecodeNum() - initialBytecodeCount));
@@ -171,7 +174,7 @@ public class Navigation {
             for (int x = 0; x < n-1; x ++) {
                 for (int y = 0; y < n-1; y ++) {
                     //System.out.println((Clock.getBytecodeNum() - initialBytecodeCount));
-                    if (validEdges[0][x][y]){
+                    if (validEdges0[x][y]){
                         //System.out.println((Clock.getBytecodeNum() - initialBytecodeCount));
                         distances[x][y+1] = Math.min(distances[x][y+1], distances[x+1][y] + 1);
                         //System.out.println((Clock.getBytecodeNum() - initialBytecodeCount));
@@ -179,15 +182,15 @@ public class Navigation {
                         //System.out.println((Clock.getBytecodeNum() - initialBytecodeCount));
                     }
                     //System.out.println((Clock.getBytecodeNum() - initialBytecodeCount));
-                    if (validEdges[1][x][y]){
+                    if (validEdges1[x][y]){
                         distances[x][y] = Math.min(distances[x][y], distances[x+1][y] + 1);
                         distances[x+1][y] = Math.min(distances[x][y] + 1, distances[x+1][y]);
                     }
-                    if (validEdges[2][x][y]){
+                    if (validEdges2[x][y]){
                         distances[x][y] = Math.min(distances[x][y], distances[x+1][y+1] + 1);
                         distances[x+1][y+1] = Math.min(distances[x][y] + 1, distances[x+1][y+1]);
                     }
-                    if (validEdges[3][x][y]){
+                    if (validEdges3[x][y]){
                         distances[x][y] = Math.min(distances[x][y], distances[x][y+1] + 1);
                         distances[x][y+1] = Math.min(distances[x][y] + 1, distances[x][y+1]);
                     }
@@ -205,52 +208,52 @@ public class Navigation {
         int bestY = radius;
         int minDistance = Integer.MAX_VALUE;
         // Unfortunately, due to how the edges are stored, we have to try the adjacent tiles manually
-        if (validEdges[0][radius-1][radius] && distances[radius-1][radius+1] < minDistance) {
+        if (validEdges0[radius-1][radius] && distances[radius-1][radius+1] < minDistance) {
             bestX = radius-1;
             bestY = radius+1;
             minDistance = distances[radius-1][radius+1];
             System.out.println(minDistance);
         }
-        if (validEdges[0][radius][radius-1] && distances[radius+1][radius-1] < minDistance) {
+        if (validEdges0[radius][radius-1] && distances[radius+1][radius-1] < minDistance) {
             bestX = radius+1;
             bestY = radius-1;
             minDistance = distances[radius+1][radius-1];
             System.out.println(minDistance);
         }
         
-        if (validEdges[1][radius-1][radius] && distances[radius-1][radius] < minDistance) {
+        if (validEdges1[radius-1][radius] && distances[radius-1][radius] < minDistance) {
             bestX = radius-1;
             bestY = radius;
             minDistance = distances[radius][radius-1];
             System.out.println(minDistance);
         }
-        if (validEdges[1][radius][radius] && distances[radius+1][radius] < minDistance) {
+        if (validEdges1[radius][radius] && distances[radius+1][radius] < minDistance) {
             bestX = radius+1;
             bestY = radius;
             minDistance = distances[radius][radius+1];
             System.out.println(minDistance);
         }
 
-        if (validEdges[2][radius-1][radius-1] && distances[radius-1][radius-1] < minDistance) {
+        if (validEdges2[radius-1][radius-1] && distances[radius-1][radius-1] < minDistance) {
             bestX = radius-1;
             bestY = radius-1;
             minDistance = distances[radius-1][radius-1];
             System.out.println(minDistance);
         }
-        if (validEdges[2][radius][radius] && distances[radius+1][radius+1] < minDistance) {
+        if (validEdges2[radius][radius] && distances[radius+1][radius+1] < minDistance) {
             bestX = radius+1;
             bestY = radius+1;
             minDistance = distances[radius+1][radius+1];
             System.out.println(minDistance);
         }
 
-        if (validEdges[3][radius][radius-1] && distances[radius][radius-1] < minDistance) {
+        if (validEdges3[radius][radius-1] && distances[radius][radius-1] < minDistance) {
             bestX = radius;
             bestY = radius-1;
             minDistance = distances[radius][radius-1];
             System.out.println(minDistance);
         }
-        if (validEdges[3][radius][radius] && distances[radius][radius+1] < minDistance) {
+        if (validEdges3[radius][radius] && distances[radius][radius+1] < minDistance) {
             bestX = radius;
             bestY = radius+1;
             minDistance = distances[radius][radius+1];
@@ -269,6 +272,7 @@ public class Navigation {
 
     // default parameters
     boolean navTo(MapLocation destination) throws GameActionException {
-        return navTo(destination, 3, 3);
+        return navTo(destination, 2, 3);
     }
+
 }

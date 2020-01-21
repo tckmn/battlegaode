@@ -205,7 +205,7 @@ public class Miner extends Unit {
         if (useBetterNav)
             nav.navTo(getNearestEnemyHQPossibility());
         else
-            nav.goTo(getNearestEnemyHQPossibility()); // may have changed due to removal
+            nav.navTo(getNearestEnemyHQPossibility()); // may have changed due to removal
 
         if (nav.tryMove(currentDir))
           System.out.println("I moved!");
@@ -321,8 +321,14 @@ public class Miner extends Unit {
         // TODO: also make sure there is landscaper nearby
         if (isStuck && rc.getRoundNum() > emergencyProteccRound && rc.getSoupCarrying() == 0 && rc.getLocation().isAdjacentTo(hqLoc)) {
             System.out.println("Stuck and in the way -- probably providing negative utility to team");
+            // only run away if there are nearby landscapers
+            RobotInfo[] nearbyRobots = rc.senseNearbyRobots(2, rc.getTeam());
+            boolean adjacentLandscaper = false;
+            for (RobotInfo robot : nearbyRobots)
+                if (robot.type == RobotType.LANDSCAPER)
+                    adjacentLandscaper = true;
             Direction dirAwayFromHQ = rc.getLocation().directionTo(hqLoc).opposite();
-            if (!(nav.tryMove(dirAwayFromHQ) || nav.tryMove(dirAwayFromHQ.rotateLeft()) || nav.tryMove(dirAwayFromHQ.rotateRight())
+            if (adjacentLandscaper && !(nav.tryMove(dirAwayFromHQ) || nav.tryMove(dirAwayFromHQ.rotateLeft()) || nav.tryMove(dirAwayFromHQ.rotateRight())
                 || nav.tryMove(dirAwayFromHQ.rotateLeft().rotateLeft()) || nav.tryMove(dirAwayFromHQ.rotateRight().rotateRight())))
                 rc.disintegrate();
         }
