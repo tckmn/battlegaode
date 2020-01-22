@@ -91,8 +91,18 @@ public class Landscaper extends Unit {
 
     void runLandscaperProtecc() throws GameActionException {
         ArrayList<MapLocation> wallLocations = new ArrayList<MapLocation>(8);
-            for (Direction dir : Util.directions)
-                wallLocations.add(hqLoc.add(dir));
+        Direction [] wallDirs = {
+            Direction.NORTH,
+            Direction.SOUTH,
+            Direction.NORTHEAST,
+            Direction.NORTHWEST,
+            Direction.EAST,
+            Direction.WEST,
+            Direction.SOUTHEAST,
+            Direction.SOUTHWEST
+        };
+        for (Direction dir : wallDirs)
+            wallLocations.add(hqLoc.add(dir));
         
         // now try to see if any are occupied by landscapers already
         for (int counter = wallLocations.size() - 1; counter >= 0; counter --){

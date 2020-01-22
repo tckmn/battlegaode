@@ -112,15 +112,18 @@ public class Miner extends Unit {
                         designSchoolLoc = rc.getLocation().add(currentDir.rotateLeft());
                         designSchoolTurnBuilt = rc.getRoundNum();
                     }
-                    if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight().rotateRight())) {
-                        hasBuiltDesignSchool = true;
-                        designSchoolLoc = rc.getLocation().add(currentDir.rotateRight().rotateRight());
-                        designSchoolTurnBuilt = rc.getRoundNum();
-                    }
-                    if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft().rotateLeft())) {
-                        hasBuiltDesignSchool = true;
-                        designSchoolLoc = rc.getLocation().add(currentDir.rotateLeft().rotateLeft());
-                        designSchoolTurnBuilt = rc.getRoundNum();
+                    // only try locations that are also adjacent to enemy HQ
+                    if (currentDir == Direction.NORTH || currentDir == Direction.SOUTH || currentDir == Direction.EAST || currentDir == Direction.WEST) {
+                        if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateRight().rotateRight())) {
+                            hasBuiltDesignSchool = true;
+                            designSchoolLoc = rc.getLocation().add(currentDir.rotateRight().rotateRight());
+                            designSchoolTurnBuilt = rc.getRoundNum();
+                        }
+                        if(tryBuild(RobotType.DESIGN_SCHOOL, currentDir.rotateLeft().rotateLeft())) {
+                            hasBuiltDesignSchool = true;
+                            designSchoolLoc = rc.getLocation().add(currentDir.rotateLeft().rotateLeft());
+                            designSchoolTurnBuilt = rc.getRoundNum();
+                        }
                     }
                 }
                 return;
@@ -321,7 +324,7 @@ public class Miner extends Unit {
 
         // disintegrate if in the way of defensive wall
         // TODO: also make sure there is landscaper nearby
-        if (isStuck && rc.getRoundNum() > emergencyProteccRound && rc.getSoupCarrying() == 0 && rc.getLocation().isAdjacentTo(hqLoc)) {
+        if (isStuck && rc.getRoundNum() > emergencyProteccRound-5 && rc.getSoupCarrying() == 0 && rc.getLocation().isAdjacentTo(hqLoc)) {
             System.out.println("Stuck and in the way -- probably providing negative utility to team");
             // only run away if there are nearby landscapers
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots(2, rc.getTeam());
