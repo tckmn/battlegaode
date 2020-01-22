@@ -987,12 +987,12 @@ minDistance=distances31;
 if (validEdges112 && distances12 < minDistance) {
 bestX = 1;
 bestY = 2;
-minDistance=distances21;
+minDistance=distances12;
 }
 if (validEdges122 && distances32 < minDistance) {
 bestX = 3;
 bestY = 2;
-minDistance=distances23;
+minDistance=distances32;
 }
 if (validEdges211 && distances11 < minDistance) {
 bestX = 1;

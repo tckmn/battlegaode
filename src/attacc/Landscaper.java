@@ -52,7 +52,7 @@ public class Landscaper extends Unit {
                 System.out.println("Removed dirt from friendly net gun!");
             }
         }
-        // also remove dirt from fulfillment centers
+        // also remove dirt from design schools
         if (designSchool != null) {
             if (rc.canDigDirt(rc.getLocation().directionTo(designSchool))) {
                 rc.digDirt(rc.getLocation().directionTo(designSchool));

@@ -37,11 +37,11 @@ public class Miner extends Unit {
         }
 
         recentSoup[rc.getRoundNum() % 5] = rc.getSoupCarrying();
-        recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
+        if (rc.isReady()) 
+            recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
+
 
         checkIfStuck();
-        if (isStuck)
-            System.out.println("Woe is I; I'm stuck!");
         if (firstMiner)
             minerAttacc();
         // conditions for defense:
@@ -68,16 +68,18 @@ public class Miner extends Unit {
             // if soup is stuck at the same amount and >= 3 locations in recentLocs match current one
             // then robot is stuck
             int locationMatches = 0;
-            for (MapLocation loc : recentLocs)
-                if (loc.equals(rc.getLocation()))
+            for (int counter = 0; counter < 5; counter ++)
+                if (rc.getRoundNum() % 5 != counter && recentLocs[counter] != null && recentLocs[counter].equals(rc.getLocation()))
                     locationMatches ++;
-            isStuck = (locationMatches >= 3);
+            isStuck = (locationMatches >= 2);
             int currentSoup = rc.getSoupCarrying();
             for (int pastSoup : recentSoup){
                 if (pastSoup != currentSoup) {
                     isStuck = false;
                 }
             }
+            if (isStuck)
+                System.out.println("Woe is I; I'm stuck!");
         }
     }
 
@@ -317,6 +319,7 @@ public class Miner extends Unit {
             return;
         }
 
+        // disintegrate if in the way of defensive wall
         // TODO: also make sure there is landscaper nearby
         if (isStuck && rc.getRoundNum() > emergencyProteccRound && rc.getSoupCarrying() == 0 && rc.getLocation().isAdjacentTo(hqLoc)) {
             System.out.println("Stuck and in the way -- probably providing negative utility to team");
