@@ -100,13 +100,13 @@ public class Landscaper extends Unit {
         Direction designSchoolToHQ = designSchoolLoc.directionTo(hqLoc);
         Direction [] wallDirs = {
             designSchoolToHQ,
-            designSchoolToHQ.opposite(),
             designSchoolToHQ.rotateLeft(),
             designSchoolToHQ.rotateRight(),
             designSchoolToHQ.rotateLeft().rotateLeft(),
             designSchoolToHQ.rotateRight().rotateRight(),
             designSchoolToHQ.opposite().rotateRight(),
-            designSchoolToHQ.opposite().rotateLeft()
+            designSchoolToHQ.opposite().rotateLeft(),
+            designSchoolToHQ.opposite()
         };
         for (Direction dir : wallDirs)
             wallLocations.add(hqLoc.add(dir));
