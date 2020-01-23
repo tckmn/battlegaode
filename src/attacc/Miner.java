@@ -56,7 +56,7 @@ public class Miner extends Unit {
         // 200 means will take precedence over net guns but not landscapers
         else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
             || rc.getTeamSoup() >= 200 && (canSenseEnemy(RobotType.LANDSCAPER)
-            || (rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc))))
+            || (rc.getRoundNum() >= attaccRound && rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc))))
             minerProtecc();
         else
             minerGetSoup();

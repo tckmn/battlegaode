@@ -3,10 +3,15 @@ import battlecode.common.*;
 import java.util.ArrayList;
 
 public class Landscaper extends Unit {
-    static boolean landscaperInPlace = false;
+    boolean landscaperInPlace = false;
+    MapLocation designSchoolLoc = null;
 
     public Landscaper(RobotController r) {
         super(r);
+        RobotInfo [] nearbyRobots = rc.senseNearbyRobots(2, rc.getTeam());
+        for (RobotInfo robot : nearbyRobots)
+            if (robot.type == RobotType.DESIGN_SCHOOL)
+                designSchoolLoc = robot.getLocation();
     }
 
     public void takeTurn() throws GameActionException {
@@ -91,15 +96,17 @@ public class Landscaper extends Unit {
 
     void runLandscaperProtecc() throws GameActionException {
         ArrayList<MapLocation> wallLocations = new ArrayList<MapLocation>(8);
+        if (hqLoc == null) return;
+        Direction designSchoolToHQ = designSchoolLoc.directionTo(hqLoc);
         Direction [] wallDirs = {
-            Direction.NORTH,
-            Direction.SOUTH,
-            Direction.NORTHEAST,
-            Direction.NORTHWEST,
-            Direction.EAST,
-            Direction.WEST,
-            Direction.SOUTHEAST,
-            Direction.SOUTHWEST
+            designSchoolToHQ,
+            designSchoolToHQ.opposite(),
+            designSchoolToHQ.rotateLeft(),
+            designSchoolToHQ.rotateRight(),
+            designSchoolToHQ.rotateLeft().rotateLeft(),
+            designSchoolToHQ.rotateRight().rotateRight(),
+            designSchoolToHQ.opposite().rotateRight(),
+            designSchoolToHQ.opposite().rotateLeft()
         };
         for (Direction dir : wallDirs)
             wallLocations.add(hqLoc.add(dir));
@@ -118,24 +125,23 @@ public class Landscaper extends Unit {
         System.out.println(wallLocations.size() + " locations around HQ not occupied by other landscapers!");
         MapLocation currentLoc = rc.getLocation();
         // try to walk to first unoccupied location in list (unless already there)
-        if (wallLocations.size() > 0) {
+        if (!landscaperInPlace && wallLocations.size() > 0) {
             if (wallLocations.get(0).equals(currentLoc))
                 landscaperInPlace = true;
-            else
-                nav.goTo(wallLocations.get(0));
-        } else {
-            // try to walk to north side of HQ
-            if (currentLoc.translate(0,1).isAdjacentTo(hqLoc))
-                nav.tryMove(Direction.NORTH);
-            if (currentLoc.translate(1,1).isAdjacentTo(hqLoc))
-                nav.tryMove(Direction.NORTHEAST);
-            if (currentLoc.translate(-1,1).isAdjacentTo(hqLoc))
-                nav.tryMove(Direction.NORTHWEST);
+            else {
+                // try to walk to north side of HQ
+                if (currentLoc.add(designSchoolToHQ).isAdjacentTo(hqLoc))
+                    nav.tryMove(designSchoolToHQ);
+                if (currentLoc.add(designSchoolToHQ.rotateLeft()).isAdjacentTo(hqLoc))
+                    nav.tryMove(designSchoolToHQ.rotateLeft());
+                if (currentLoc.add(designSchoolToHQ.rotateRight()).isAdjacentTo(hqLoc))
+                    nav.tryMove(designSchoolToHQ.rotateRight());
 
-            // if still not adjacent to HQ, try to move in random direction
-            if (!currentLoc.isAdjacentTo(hqLoc)) {
-                nav.tryMove(Util.randomDirection());
-                return;
+                // if still not adjacent to HQ, try to move in random direction
+                if (!currentLoc.isAdjacentTo(hqLoc)) {
+                    nav.goTo(wallLocations.get(0));
+                    return;
+                }
             }
         }
 

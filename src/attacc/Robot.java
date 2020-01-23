@@ -9,9 +9,10 @@ public class Robot {
     int turnCount = 0;
     MapLocation lastSoupMined = null; // also used for HQ spawning miners, so can't put in Miner.java
 
+    int attaccRound = 150; // don't stop attack before this turn unless necessary
     int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
     int emergencyProteccRound = 450; // needs to be before first sea level rise
-    int earlyProtecc = 4; // extra soup needed to start building wall early (units of soup/early round)
+    int earlyProtecc = 6; // extra soup needed to start building wall early (units of soup/early round)
 
     MapLocation enemyHQ = null;
     Direction currentDir = Util.randomDirection();
