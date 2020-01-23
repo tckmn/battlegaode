@@ -76,8 +76,11 @@ public class DeliveryDrone extends Unit {
             }
             // if in sight of enemy HQ, release payload
             if (enemyHQ != null) {
-                if (rc.canDropUnit(currentDir.rotateRight()))
-                {
+                if (rc.canDropUnit(currentDir)) {
+                    rc.dropUnit(currentDir);
+                    hasTransportedMiner = true;
+                }
+                if (rc.canDropUnit(currentDir.rotateRight())) {
                     rc.dropUnit(currentDir.rotateRight());
                     hasTransportedMiner = true;
                 }
