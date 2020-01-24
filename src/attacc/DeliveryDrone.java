@@ -71,6 +71,11 @@ public class DeliveryDrone extends Unit {
                 nav.tryMove(dirToHQ.rotateLeft().rotateLeft());
                 nav.tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
             }
+
+            // reverse orbital direction if needed
+            checkIfStuck();
+            if (isStuck)
+                spinUp = !spinUp;
         } else {
             MapLocation nearestWater = null;
             int nearestWaterDistance = Integer.MAX_VALUE;
