@@ -61,37 +61,72 @@ public class DeliveryDrone extends Unit {
                 if (rc.canPickUpUnit(robot.ID))
                     rc.pickUpUnit(robot.ID);
 
-            Direction dirToHQ = currentLoc.directionTo(hqLoc);
-            if (spinUp) {
-                nav.tryMove(dirToHQ.rotateRight());
-                nav.tryMove(dirToHQ.rotateRight().rotateRight());
-                nav.tryMove(dirToHQ.rotateRight().rotateRight().rotateRight());
-            } else {
-                nav.tryMove(dirToHQ.rotateLeft());
-                nav.tryMove(dirToHQ.rotateLeft().rotateLeft());
-                nav.tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
+            // if wall has missing places, put a landscaper on one of them (if possible)
+            int landscapersMissing = 0;
+            for (Direction dir : Util.directions) {
+                MapLocation loc = hqLoc.add(dir);
+                if (rc.canSenseLocation(loc) && !rc.isLocationOccupied(loc))
+                    landscapersMissing ++;
             }
+            if (landscapersMissing > 0) {
+                RobotInfo [] adjacentFriends = rc.senseNearbyRobots(2, rc.getTeam());
+                for (RobotInfo robot : adjacentFriends)
+                    if (robot.type == RobotType.LANDSCAPER && !robot.location.isAdjacentTo(hqLoc) && rc.canPickUpUnit(robot.ID))
+                        rc.pickUpUnit(robot.ID);
+            }
+
+            // orbit HQ as a sentry
+            orbitHQ();
 
             // reverse orbital direction if needed
             checkIfStuck();
             if (isStuck)
                 spinUp = !spinUp;
         } else {
-            MapLocation nearestWater = null;
-            int nearestWaterDistance = Integer.MAX_VALUE;
-            for (MapLocation loc : waterTiles) {
-                if (loc != null && !currentLoc.equals(loc) && currentLoc.distanceSquaredTo(loc) < nearestWaterDistance) {
-                    nearestWater = loc;
-                    nearestWaterDistance = currentLoc.distanceSquaredTo(loc);
+            // determine if the unit is friend or foe (cow = foe here)
+            RobotInfo me = rc.senseRobotAtLocation(currentLoc);
+            if (rc.senseRobot(me.heldUnitID).team != rc.getTeam()) {
+                MapLocation nearestWater = null;
+                int nearestWaterDistance = Integer.MAX_VALUE;
+                for (MapLocation loc : waterTiles) {
+                    if (loc != null && !currentLoc.equals(loc) && currentLoc.distanceSquaredTo(loc) < nearestWaterDistance) {
+                        nearestWater = loc;
+                        nearestWaterDistance = currentLoc.distanceSquaredTo(loc);
+                    }
                 }
+                // TODO: Do something more intelligent here
+                if (nearestWater != null) {
+                    if (currentLoc.isAdjacentTo(nearestWater) && rc.canDropUnit(currentLoc.directionTo(nearestWater)))
+                        rc.dropUnit(currentLoc.directionTo(nearestWater));
+                    nav.goTo(nearestWater);
+                } else
+                    nav.goTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
+            } else {
+                System.out.println("Carrying friendly landscaper to place on wall");
+                // find missing wall location to put unit on
+                for (Direction dir : Util.directions) {
+                    MapLocation loc = currentLoc.add(dir);
+                    System.out.println(loc);
+                    if (rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && loc.isAdjacentTo(hqLoc) && rc.canDropUnit(dir))
+                        rc.dropUnit(dir);
+                }
+                if (rc.isCurrentlyHoldingUnit()) // didn't succeed in dropping it
+                    orbitHQ();
             }
-            // TODO: Do something more intelligent here
-            if (nearestWater != null) {
-                if (currentLoc.isAdjacentTo(nearestWater) && rc.canDropUnit(currentLoc.directionTo(nearestWater)))
-                    rc.dropUnit(currentLoc.directionTo(nearestWater));
-                nav.goTo(nearestWater);
-            } else
-                nav.goTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
+        }
+    }
+
+    public void orbitHQ() throws GameActionException {
+        MapLocation currentLoc = rc.getLocation();
+        Direction dirToHQ = currentLoc.directionTo(hqLoc);
+        if (spinUp) {
+            nav.tryMove(dirToHQ.rotateRight());
+            nav.tryMove(dirToHQ.rotateRight().rotateRight());
+            nav.tryMove(dirToHQ.rotateRight().rotateRight().rotateRight());
+        } else {
+            nav.tryMove(dirToHQ.rotateLeft());
+            nav.tryMove(dirToHQ.rotateLeft().rotateLeft());
+            nav.tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
         }
     }
 
@@ -116,6 +151,7 @@ public class DeliveryDrone extends Unit {
             enemyHQPossibilities = comms.receiveEnemyHQ();
             hasReceivedEnemyHQLocations = true;
         }
+        MapLocation currentLoc = rc.getLocation();
         if (rc.isCurrentlyHoldingUnit()){
 
             // try to find enemy HQ
@@ -123,21 +159,27 @@ public class DeliveryDrone extends Unit {
             for (RobotInfo robot : robots) {
                 if (robot.type == RobotType.HQ && robot.team != rc.getTeam()) {
                     enemyHQ = robot.location;
-                    currentDir = rc.getLocation().directionTo(robot.location);
+                    currentDir = currentLoc.directionTo(robot.location);
                     System.out.println("Found enemy HQ!");
                 }
             }
+            // if only one possible location left and four squares away from that, then this is the enemy HQ
+            if (enemyHQPossibilities.size() == 1 && currentLoc.distanceSquaredTo(enemyHQPossibilities.get(0)) <= 20) {
+                enemyHQ = enemyHQPossibilities.get(0);
+                currentDir = currentLoc.directionTo(enemyHQ);
+            }
+
             // if in sight of enemy HQ, release payload
             if (enemyHQ != null) {
-                if (rc.canDropUnit(currentDir)) {
+                if (rc.canDropUnit(currentDir) && !rc.senseFlooding(currentLoc.add(currentDir))) {
                     rc.dropUnit(currentDir);
                     hasTransportedMiner = true;
                 }
-                if (rc.canDropUnit(currentDir.rotateRight())) {
+                if (rc.canDropUnit(currentDir.rotateRight()) && !rc.senseFlooding(currentLoc.add(currentDir.rotateRight()))) {
                     rc.dropUnit(currentDir.rotateRight());
                     hasTransportedMiner = true;
                 }
-                if (rc.canDropUnit(currentDir.rotateLeft())) {
+                if (rc.canDropUnit(currentDir.rotateLeft()) && !rc.senseFlooding(currentLoc.add(currentDir.rotateLeft()))) {
                     rc.dropUnit(currentDir.rotateLeft());
                     hasTransportedMiner = true;
                 }
@@ -150,6 +192,7 @@ public class DeliveryDrone extends Unit {
                 if (!(possibleHQ.length > 0 && possibleHQ[0].type == RobotType.HQ))
                     enemyHQPossibilities.remove(getNearestEnemyHQPossibility());
             }
+
 
             // otherwise, try to go to the next possible enemy HQ location
             if (!(rc.getLocation().equals(getNearestEnemyHQPossibility())))
@@ -196,19 +239,18 @@ public class DeliveryDrone extends Unit {
 
         // otherwise, circle enemy HQ looking for fresh meat
         if (currentLoc.distanceSquaredTo(enemyHQ) > 25)
-            nav.goTo(enemyHQ);
+            cautiouslyGoTo(enemyHQ);
         else {
             Direction dirToHQ = currentLoc.directionTo(enemyHQ);
-            Direction moveDir;
-            if (spinUp)
-                moveDir = dirToHQ.rotateRight().rotateRight();
-            else
-                moveDir = dirToHQ.rotateLeft().rotateLeft();
-            nav.tryMove(moveDir);
-            if (spinUp)
-                nav.tryMove(moveDir.rotateRight());
-            else
-                nav.tryMove(moveDir.rotateLeft());
+            Direction moveDir = dirToHQ;
+            for (int counter = 0; counter < 4; counter ++) {
+                if (!(currentLoc.add(moveDir).distanceSquaredTo(enemyHQ) > 13 && nav.tryMove(moveDir))) {
+                    if (spinUp)
+                        moveDir = moveDir.rotateRight();
+                    else
+                        moveDir = moveDir.rotateLeft();
+                }
+            }
             // DO NOT try moveDir.rotate[wrong way](); this will bring us within net gun range
             checkIfStuck();
             if (isStuck)
