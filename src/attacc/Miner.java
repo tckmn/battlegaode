@@ -317,6 +317,11 @@ public class Miner extends Unit {
                 targetLoc = hqLoc;
         }
 
+        MapLocation soupLoc = findNearestSoup();
+        if (targetLoc != hqLoc && soupLoc != null && !isStuck) {
+            targetLoc = soupLoc;
+        }
+
         if (targetLoc != null){
             nav.goTo(targetLoc);
             return;
@@ -338,32 +343,8 @@ public class Miner extends Unit {
                 rc.disintegrate();
         }
 
-        // This is wasteful in terms of bytecodes but hopefully we have plenty
-        // TODO: Replace this with findNearestSoup (above)
-        MapLocation myLoc = rc.getLocation();
-        MapLocation soupLoc = findNearestSoup();
-        if (soupLoc != null && !isStuck) {
-            targetLoc = soupLoc;
-            nav.goTo(soupLoc);
-            return;
-        }
-        /*
-        for (int n = 1; n <= 5; n ++) {
-            for (int x = -n; x <= n; x ++){
-                for (int y = -n; y <= n; y ++) {
-                    MapLocation possibleLoc = myLoc.translate(x,y);
-                    System.out.println("Is there soup at " + possibleLoc + "?");
-                    if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
-                        // go to that location and break out of this loop
-                        System.out.println("Found soup; now going to " + possibleLoc);
-                        targetLoc = possibleLoc;
-                        nav.goTo(targetLoc);
-                        return;
-                    }
-                }
-            }
-        }
-        */
+
+
         // if it can't find soup, go to last location where it found soup (if it exists) or move randomly
         if (lastSoupMined != null) {
             System.out.println("Going to last soup mined");

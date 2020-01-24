@@ -87,21 +87,15 @@ public class Robot {
 
         // TODO: I think there's a more efficient method in the new specs
     MapLocation findNearestSoup() throws GameActionException {
-        int rSq = rc.getCurrentSensorRadiusSquared();
-        int k = (int)(Math.sqrt(rSq));
+        MapLocation [] soupLocations = rc.senseNearbySoup();
+        MapLocation currentLoc = rc.getLocation();
         MapLocation closestSoup = null;
         int minDistance = Integer.MAX_VALUE;
-        for (int x = -k; x <= k; x ++){
-            for (int y = -k; y <= k; y ++) {
-                if (x*x + y*y <= Math.min(rSq, minDistance)) {
-                    MapLocation possibleLoc = rc.getLocation().translate(x,y);
-                    if (rc.canSenseLocation(possibleLoc) && rc.senseSoup(possibleLoc) > 0) {
-                        // go to that location and break out of this loop
-                        System.out.println("Found soup at " + possibleLoc);
-                        closestSoup = possibleLoc;
-                        minDistance = x*x + y*y;
-                    }
-                }
+        for (MapLocation loc : soupLocations) {
+            //System.out.println(loc + " " + currentLoc.distanceSquaredTo(loc));
+            if (currentLoc.distanceSquaredTo(loc) < minDistance) {
+                minDistance = currentLoc.distanceSquaredTo(loc);
+                closestSoup = loc;
             }
         }
         System.out.println("Closest soup is at " + closestSoup);

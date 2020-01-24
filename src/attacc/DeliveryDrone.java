@@ -91,12 +91,19 @@ public class DeliveryDrone extends Unit {
                 return;
             }
 
+            // if you can see that nearest enemy HQ possibility is empty, remove it from list
+            if (rc.canSenseLocation(getNearestEnemyHQPossibility())) {
+                RobotInfo [] possibleHQ = rc.senseNearbyRobots(getNearestEnemyHQPossibility(), 0, rc.getTeam().opponent());
+                if (!(possibleHQ.length > 0 && possibleHQ[0].type == RobotType.HQ))
+                    enemyHQPossibilities.remove(getNearestEnemyHQPossibility());
+            }
+
             // otherwise, try to go to the next possible enemy HQ location
             if (!(rc.getLocation().equals(getNearestEnemyHQPossibility())))
                 nav.goTo(getNearestEnemyHQPossibility());
             // if already at enemy HQ location, then there is nothing there, so we have the wrong spot
             else
-                enemyHQPossibilities.remove(getNearestEnemyHQPossibility());
+                enemyHQPossibilities.remove(getNearestEnemyHQPossibility()); // probably redundant now
         } else {
             // pick up nearby miner
             System.out.println("looking for nearby robots!");
