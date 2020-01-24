@@ -10,6 +10,10 @@ public class FulfillmentCenter extends Building {
 
     public void takeTurn() throws GameActionException {
         super.takeTurn();
+
+        // in order to build defensive drone, reset hasBuiltDrone on proteccRound
+        if (rc.getRoundNum() == proteccRound)
+            hasBuiltDrone = false;
         
         if (hasBuiltDrone)
             return;
@@ -30,5 +34,14 @@ public class FulfillmentCenter extends Building {
                 if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateRight()))
                     hasBuiltDrone = true;
             }
+
+        // if there are no miners nearby (probably if we're building defensive drone), build in direction of our HQ
+        if (hqLoc != null) {
+            MapLocation currentLoc = rc.getLocation();
+            Direction dirToHQ = currentLoc.directionTo(hqLoc);
+            if (tryBuild(RobotType.DELIVERY_DRONE, dirToHQ) || tryBuild(RobotType.DELIVERY_DRONE, dirToHQ.rotateLeft())
+                    || tryBuild(RobotType.DELIVERY_DRONE, dirToHQ.rotateRight()))
+                hasBuiltDrone = true;
+        }
     }
 }

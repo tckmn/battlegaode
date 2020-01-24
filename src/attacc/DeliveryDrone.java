@@ -3,6 +3,8 @@ import battlecode.common.*;
 import java.util.ArrayList;
 
 public class DeliveryDrone extends Unit {
+    boolean offense = false;
+
     boolean hasTransportedMiner = false;
     boolean hasReceivedEnemyHQLocations = false;
 
@@ -18,6 +20,7 @@ public class DeliveryDrone extends Unit {
 
     public void takeTurn() throws GameActionException {
         super.takeTurn();
+        offense = offense || rc.getRoundNum() < proteccRound; // attack if created before protection round
 
         if (rc.isReady()) 
             recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
@@ -34,12 +37,57 @@ public class DeliveryDrone extends Unit {
                 }
             }
         }
-        
 
+        if (offense)
+            offensiveDrone();
+        else
+            defensiveDrone();
+    }
+
+    public void offensiveDrone() throws GameActionException {
         if (!hasTransportedMiner)
             transportMiner();
         else
             annoyEnemy();
+    }
+
+    // orbit our wall, yoink enemies off it, and yeet them into the water
+    public void defensiveDrone () throws GameActionException {
+        MapLocation currentLoc = rc.getLocation();
+        if (!rc.isCurrentlyHoldingUnit()) {
+            // if in range of an enemy unit, pick it up
+            RobotInfo [] adjacentEnemies = rc.senseNearbyRobots(2, rc.getTeam().opponent());
+            for (RobotInfo robot : adjacentEnemies) 
+                if (rc.canPickUpUnit(robot.ID))
+                    rc.pickUpUnit(robot.ID);
+
+            Direction dirToHQ = currentLoc.directionTo(hqLoc);
+            if (spinUp) {
+                nav.tryMove(dirToHQ.rotateRight());
+                nav.tryMove(dirToHQ.rotateRight().rotateRight());
+                nav.tryMove(dirToHQ.rotateRight().rotateRight().rotateRight());
+            } else {
+                nav.tryMove(dirToHQ.rotateLeft());
+                nav.tryMove(dirToHQ.rotateLeft().rotateLeft());
+                nav.tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
+            }
+        } else {
+            MapLocation nearestWater = null;
+            int nearestWaterDistance = Integer.MAX_VALUE;
+            for (MapLocation loc : waterTiles) {
+                if (loc != null && !currentLoc.equals(loc) && currentLoc.distanceSquaredTo(loc) < nearestWaterDistance) {
+                    nearestWater = loc;
+                    nearestWaterDistance = currentLoc.distanceSquaredTo(loc);
+                }
+            }
+            // TODO: Do something more intelligent here
+            if (nearestWater != null) {
+                if (currentLoc.isAdjacentTo(nearestWater) && rc.canDropUnit(currentLoc.directionTo(nearestWater)))
+                    rc.dropUnit(currentLoc.directionTo(nearestWater));
+                nav.goTo(nearestWater);
+            } else
+                nav.goTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
+        }
     }
 
 
@@ -115,6 +163,7 @@ public class DeliveryDrone extends Unit {
         }
     }
 
+    // yoink enemy units and yeet them into the water
     public void annoyEnemy() throws GameActionException {
         MapLocation currentLoc = rc.getLocation();
         if (rc.isCurrentlyHoldingUnit()) {
@@ -126,6 +175,7 @@ public class DeliveryDrone extends Unit {
                     nearestWaterDistance = currentLoc.distanceSquaredTo(loc);
                 }
             }
+            // TODO: Do something more intelligent here
             if (nearestWater != null) {
                 if (currentLoc.isAdjacentTo(nearestWater) && rc.canDropUnit(currentLoc.directionTo(nearestWater)))
                     rc.dropUnit(currentLoc.directionTo(nearestWater));

@@ -2,6 +2,7 @@ package attacc;
 import battlecode.common.*;
 
 public class DesignSchool extends Building {
+    int soupPreviousTurn = 0;
     public DesignSchool(RobotController r) {
         super(r);
     }
@@ -19,6 +20,12 @@ public class DesignSchool extends Building {
 
                 System.out.println("Found enemy HQ!");
             }
+        }
+
+        // defensive design school should lose race conditions by delaying everything one turn
+        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16 && soupPreviousTurn < 150) {
+            soupPreviousTurn = rc.getTeamSoup();
+            return;
         }
 
         // if we see an enemy drone but no friendly net gun, stop building landscapers
@@ -46,5 +53,7 @@ public class DesignSchool extends Building {
             tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateRight());
             tryBuild(RobotType.LANDSCAPER, currentDir.opposite());
         }
+        
+        soupPreviousTurn = rc.getTeamSoup();
     }
 }
