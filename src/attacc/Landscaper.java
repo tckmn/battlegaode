@@ -299,7 +299,9 @@ public class Landscaper extends Unit {
         // if there is a target but not carrying dirt, then dig some up
         if (bestTarget != null && rc.getDirtCarrying() == 0) {
             MapLocation targetLoc = bestTarget.location;
-            if (rc.canDigDirt(targetLoc.directionTo(currentLoc)))
+            if (enemyHQ != null && rc.getLocation().isAdjacentTo(enemyHQ) && rc.canDigDirt(Direction.CENTER))
+                rc.digDirt(Direction.CENTER);
+            else if (rc.canDigDirt(targetLoc.directionTo(currentLoc)))
                 rc.digDirt(targetLoc.directionTo(currentLoc));
             else if (rc.canDigDirt(targetLoc.directionTo(currentLoc).rotateRight()))
                 rc.digDirt(targetLoc.directionTo(currentLoc).rotateRight());

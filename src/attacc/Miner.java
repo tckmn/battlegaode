@@ -448,7 +448,7 @@ public class Miner extends Unit {
      * @throws GameActionException
      */
     boolean tryRefine(Direction dir) throws GameActionException {
-        if (rc.isReady() && rc.canDepositSoup(dir)) {
+        if (rc.isReady() && rc.canDepositSoup(dir) && rc.senseRobotAtLocation(rc.getLocation().add(dir)).team == rc.getTeam()) {
             rc.depositSoup(dir, rc.getSoupCarrying());
             return true;
         } else return false;
