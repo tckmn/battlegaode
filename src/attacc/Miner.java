@@ -192,12 +192,17 @@ public class Miner extends Unit {
         if (isStuck) {
             if (enemyHQ == null) {
                 if (!hasBuiltFulfillmentCenter) {
-                    for (Direction dir : Util.directions) {
-                        if (tryBuild(RobotType.FULFILLMENT_CENTER, dir)) {
-                            System.out.println("Building fulfillment center");
-                            hasBuiltFulfillmentCenter = true;
-                            hasTransmittedEnemyHQLocs = comms.transmitEnemyHQ(enemyHQPossibilities);
-                        }
+                    Direction dir = rc.getLocation().directionTo(getNearestEnemyHQPossibility());
+                    if (tryBuild(RobotType.FULFILLMENT_CENTER, dir) || tryBuild(RobotType.FULFILLMENT_CENTER, dir.rotateRight())
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, dir.rotateLeft())
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, dir.rotateRight().rotateRight())
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, dir.rotateLeft().rotateLeft())
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, dir.opposite().rotateLeft())
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, dir.opposite().rotateRight())
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, dir.opposite())) {
+                        System.out.println("Building fulfillment center");
+                        hasBuiltFulfillmentCenter = true;
+                        hasTransmittedEnemyHQLocs = comms.transmitEnemyHQ(enemyHQPossibilities);
                     }
                 }
                 return;
@@ -280,6 +285,11 @@ public class Miner extends Unit {
                     break;
                 }
             }
+            // if all directions fail, then reset
+            if (dirsTried[3]) {
+                boolean [] temp = {false, false, false, false};
+                dirsTried = temp;
+            }
         } else if (!hasBuiltRefinery) {
             System.out.println("Built defensive design school; now trying to build refinery");
             for(int counter = 0; counter < 4; counter++)
@@ -289,6 +299,11 @@ public class Miner extends Unit {
                     break;
                 }
             }
+            // if all directions fail, then reset
+            if (dirsTried[3]) {
+                boolean [] temp = {false, false, false, false};
+                dirsTried = temp;
+            }
         } else {
             // start building defensive net guns
             for (int counter = 0; counter < 8; counter ++) {
@@ -297,12 +312,49 @@ public class Miner extends Unit {
                     break;
                 }
             }
+            MapLocation currentLoc = rc.getLocation();
+            if (rc.senseElevation(currentLoc) >= 20) {
+                // see if there is an adjacent empty tile not adjacent to HQ with elevation >= 20
+                boolean hasBuiltDefensiveNetGun = false;
+                MapLocation placeForNetGun = null;
+                for (Direction dir : Util.directions) {
+                    MapLocation newLoc = currentLoc.add(dir);
+                    RobotInfo robotAtNewLoc = rc.senseRobotAtLocation(newLoc);
+                    if (robotAtNewLoc != null && robotAtNewLoc.type == RobotType.NET_GUN && robotAtNewLoc.team == rc.getTeam())
+                        hasBuiltDefensiveNetGun = true;
+                    int newElevation = rc.senseElevation(newLoc);
+                    if (newElevation >= 20 && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
+                        placeForNetGun = newLoc;
+                }
+                System.out.println("Trying to build things at location " + placeForNetGun);
+                if (placeForNetGun != null) {
+                    hasBuiltDefensiveNetGun = hasBuiltDefensiveNetGun || tryBuild(RobotType.NET_GUN, currentLoc.directionTo(placeForNetGun));
+                    hasBuiltFulfillmentCenter = hasBuiltDefensiveNetGun && 
+                            (hasBuiltFulfillmentCenter || tryBuild(RobotType.FULFILLMENT_CENTER, currentLoc.directionTo(placeForNetGun)));
+                }
+            } else if (!hasRequestedElevator) {
+                MapLocation [] locsToElevate = {currentLoc, new MapLocation(-10,-10), new MapLocation(-10,-10)};
+                int elevatorCounter = 1;
+                boolean landscaperInPlace = false;
+                for (Direction dir : Util.directions) {
+                    MapLocation newLoc = currentLoc.add(dir);
+                    if (newLoc.distanceSquaredTo(hqLoc) == 5 || newLoc.distanceSquaredTo(hqLoc) == 8 && elevatorCounter < 3)
+                        locsToElevate[elevatorCounter ++] = newLoc;
+                    if (newLoc.distanceSquaredTo(hqLoc) == 2) {
+                        RobotInfo robot = rc.senseRobotAtLocation(newLoc);
+                        if (robot.type == RobotType.LANDSCAPER && robot.team == rc.getTeam())
+                            landscaperInPlace = true;
+                    }
+                }
+                // TODO: Also make sure there is a landscaper that can hear this request
+                hasRequestedElevator = landscaperInPlace && comms.requestElevator(locsToElevate);
+            }
         }
-
     }
 
     void checkDir(int counter, boolean designSchool) throws GameActionException{
         Direction dir = dirsToCheck[counter];
+        System.out.println("Checking direction " + dir);
         MapLocation loc = hqLoc.add(dir).add(dir);
         if (!(rc.onTheMap(loc))) {
             dirsTried[counter] = true;
@@ -335,41 +387,6 @@ public class Miner extends Unit {
             checkIfStuck();
             if(isStuck) 
                 dirsTried[counter] = true;
-        }
-        MapLocation currentLoc = rc.getLocation();
-        if (rc.senseElevation(currentLoc) >= 20) {
-            // see if there is an adjacent empty tile not adjacent to HQ with elevation >= 20
-            boolean hasBuiltDefensiveNetGun = false;
-            MapLocation placeForNetGun = null;
-            for (Direction dir : Util.directions) {
-                MapLocation newLoc = currentLoc.add(dir);
-                RobotInfo robotAtNewLoc = rc.senseRobotAtLocation(newLoc);
-                if (robotAtNewLoc != null && robotAtNewLoc.type == RobotType.NET_GUN && robotAtNewLoc.team == rc.getTeam())
-                    hasBuiltDefensiveNetGun = true;
-                if (rc.senseElevation(newLoc) >= 20 && robotAtNewLoc == null)
-                    placeForNetGun = newLoc;
-            }
-            if (placeForNetGun != null) {
-                hasBuiltDefensiveNetGun = hasBuiltDefensiveNetGun || tryBuild(RobotType.NET_GUN, currentLoc.directionTo(placeForNetGun));
-                hasBuiltFulfillmentCenter = hasBuiltDefensiveNetGun && 
-                        (hasBuiltFulfillmentCenter || tryBuild(RobotType.FULFILLMENT_CENTER, currentLoc.directionTo(placeForNetGun)));
-            }
-        } else if (!hasRequestedElevator) {
-            MapLocation [] locsToElevate = {currentLoc, new MapLocation(-10,-10), new MapLocation(-10,-10)};
-            int elevatorCounter = 1;
-            boolean landscaperInPlace = false;
-            for (Direction dir : Util.directions) {
-                MapLocation newLoc = currentLoc.add(dir);
-                if (newLoc.distanceSquaredTo(hqLoc) == 5 || newLoc.distanceSquaredTo(hqLoc) == 8 && elevatorCounter < 3)
-                    locsToElevate[elevatorCounter ++] = newLoc;
-                if (newLoc.distanceSquaredTo(hqLoc) == 2) {
-                    RobotInfo robot = rc.senseRobotAtLocation(newLoc);
-                    if (robot.type == RobotType.LANDSCAPER && robot.team == rc.getTeam())
-                        landscaperInPlace = true;
-                }
-            }
-            // TODO: Also make sure there is a landscaper that can hear this request
-            hasRequestedElevator = landscaperInPlace && comms.requestElevator(locsToElevate);
         }
     }
 
