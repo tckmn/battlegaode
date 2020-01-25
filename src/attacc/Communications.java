@@ -8,7 +8,7 @@ public class Communications {
     // state related only to communications should go here
 
     // all messages from our team should start with this so we can tell them apart
-    static final int hqMessageNumber = 18537559;
+    static final int hqMessageNumber = 18537659;
     static final int enemyHQMessageNumber = 848415678;
     static final int soupLocationMessageNumber = 45787456;
 

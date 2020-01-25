@@ -3,7 +3,7 @@ import battlecode.common.*;
 
 public class HQ extends Shooter {
     int minersBuilt = 0;
-    int hqMessageNumber = 18537559;
+    int hqMessageNumber = comms.hqMessageNumber;
 
     public HQ(RobotController r) throws GameActionException {
         super(r);

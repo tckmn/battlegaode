@@ -145,15 +145,18 @@ public class Miner extends Unit {
                  || tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight()))
                     hasBuiltNetGun = true;
             }
-            if (!rc.getLocation().equals(annoyingLoc)) {
+            MapLocation currentLoc = rc.getLocation();
+            if (!currentLoc.equals(annoyingLoc)) {
                 System.out.println("Move to annoying location");
-                nav.goTo(annoyingLoc);
+                if (currentLoc.isAdjacentTo(enemyHQ) && !currentLoc.isAdjacentTo(designSchoolLoc))
+                    nav.tryMove(currentLoc.directionTo(annoyingLoc));
+                else
+                    nav.goTo(annoyingLoc);
             }
             else if (!hasBuiltNetGun && 
                 (canSenseEnemy(RobotType.DELIVERY_DRONE) || (rc.getRoundNum() > 13 + designSchoolTurnBuilt))) {
                 System.out.println("Build net gun in annoying location");
                 Direction dir = rc.getLocation().directionTo(enemyHQ);
-                MapLocation currentLoc = rc.getLocation();
                 // Note: The maximally annoying locations are those not eligible to be taken by our landscapers
                 if (currentLoc.add(dir.rotateLeft().rotateLeft()).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir.rotateLeft().rotateLeft())
                     || currentLoc.add(dir.rotateRight().rotateRight()).isAdjacentTo(enemyHQ) && tryBuild(RobotType.NET_GUN, dir.rotateRight().rotateRight())
