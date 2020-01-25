@@ -5,6 +5,8 @@ import java.util.ArrayList;
 public class Landscaper extends Unit {
     boolean landscaperInPlace = false;
     MapLocation designSchoolLoc = null;
+    MapLocation [] locsToElevate = null;
+    boolean finishedElevator = false;
 
     public Landscaper(RobotController r) {
         super(r);
@@ -17,6 +19,11 @@ public class Landscaper extends Unit {
     public void takeTurn() throws GameActionException {
         super.takeTurn();
 
+        if (!finishedElevator && locsToElevate == null)
+            locsToElevate = comms.receiveElevatorRequest();
+        else
+            performElevation();
+
         if (rc.getLocation().distanceSquaredTo(hqLoc) <= 36) {
             if (rc.getRoundNum() < emergencyProteccRound)
                 runLandscaperProtecc();
@@ -25,6 +32,23 @@ public class Landscaper extends Unit {
         }
         else
             runLandscaperAttacc();
+    }
+
+    void performElevation() throws GameActionException {
+        boolean nothingAdjacent = true;
+        MapLocation currentLoc = rc.getLocation();
+        if (hqLoc == null || !currentLoc.isAdjacentTo(hqLoc)) return;
+        for (MapLocation loc : locsToElevate) {
+            if (loc.isAdjacentTo(currentLoc)) {
+                if (rc.senseElevation(loc) < 20) {
+                    nothingAdjacent = false;
+                    Direction dir = currentLoc.directionTo(loc);
+                    if (rc.canDepositDirt(dir))
+                        rc.depositDirt(dir);
+                }
+            }
+        }
+        finishedElevator = finishedElevator || nothingAdjacent;
     }
 
     void runLandscaperAttacc() throws GameActionException {

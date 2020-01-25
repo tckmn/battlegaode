@@ -11,6 +11,7 @@ public class Communications {
     static final int hqMessageNumber = 18537659;
     static final int enemyHQMessageNumber = 848415678;
     static final int soupLocationMessageNumber = 45787456;
+    static final int elevatorMessageNumber = 48944511;
 
     public Communications(RobotController r) {
         rc = r;
@@ -69,6 +70,44 @@ public class Communications {
                 }
             }
         }
+        return null;
+    }
+
+    boolean requestElevator(MapLocation [] locsToElevate) throws GameActionException {
+        int message [] = new int[7];
+        message[0] = elevatorMessageNumber;
+        int counter = 1;
+        for (MapLocation loc : locsToElevate) {
+            message[counter++] = loc.x;
+            message[counter++] = loc.y;
+        }
+        if (rc.canSubmitTransaction(message, 1)) {
+            rc.submitTransaction(message, 1);
+            return true;
+        }
+        return false;
+    }
+
+    MapLocation[] receiveElevatorRequest() throws GameActionException {
+        Transaction [] block = rc.getBlock(rc.getRoundNum() - 1);
+            for (Transaction t : block)
+            {
+                int [] message = t.getMessage();
+                if(message[0] == elevatorMessageNumber)
+                {
+                    if (message[3] == -10) {
+                        MapLocation [] returnValue = {new MapLocation(message[1], message[2])};
+                        return returnValue;
+                    } else if (message[5] == -10) {
+                        MapLocation [] returnValue = {new MapLocation(message[1], message[2]), new MapLocation(message[3], message[4])};
+                        return returnValue;
+                    } else {
+                        MapLocation [] returnValue = {new MapLocation(message[1], message[2]), new MapLocation(message[3], message[4]),
+                            new MapLocation(message[5], message[6])};
+                        return returnValue;
+                    }
+                }
+            }
         return null;
     }
 }

@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public class DesignSchool extends Building {
     int soupPreviousTurn = 0;
+    int landscapersBuilt = 0;
     public DesignSchool(RobotController r) {
         super(r);
     }
@@ -23,7 +24,8 @@ public class DesignSchool extends Building {
         }
 
         // defensive design school should lose race conditions by delaying everything one turn
-        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16 && soupPreviousTurn < 150) {
+        if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16 && soupPreviousTurn < 150
+            || (landscapersBuilt >= 8 && soupPreviousTurn < 250)) {
             soupPreviousTurn = rc.getTeamSoup();
             return;
         }
@@ -41,24 +43,25 @@ public class DesignSchool extends Building {
         }
         if (stopBuilding) return;
 
+        
         if (Math.random() < 0.5) {
-            tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight());
-            tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft());
+            if (tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight()) || tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft()))
+                landscapersBuilt ++;
         } else {
-            tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft());
-            tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight());
+            if (tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft()) || tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight()))
+                landscapersBuilt ++;
         }
-        tryBuild(RobotType.LANDSCAPER, currentDir);
-        tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight().rotateRight());
-        tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft().rotateLeft());
+        if (tryBuild(RobotType.LANDSCAPER, currentDir) || tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight().rotateRight())
+                || tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft().rotateLeft()))
+            landscapersBuilt ++;
 
         // for defense, keep trying other squares as well
         if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16) {
-            tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateLeft());
-            tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateRight());
-            tryBuild(RobotType.LANDSCAPER, currentDir.opposite());
+            if (tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateLeft()) 
+                    || tryBuild(RobotType.LANDSCAPER, currentDir.opposite().rotateRight())
+                    || tryBuild(RobotType.LANDSCAPER, currentDir.opposite()))
+                landscapersBuilt ++;
         }
-        
         soupPreviousTurn = rc.getTeamSoup();
     }
 }
