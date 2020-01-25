@@ -41,9 +41,9 @@ public class DesignSchool extends Building {
         }
         if (stopBuilding) return;
 
-        tryBuild(RobotType.LANDSCAPER, currentDir);
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft());
+        tryBuild(RobotType.LANDSCAPER, currentDir);
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateRight().rotateRight());
         tryBuild(RobotType.LANDSCAPER, currentDir.rotateLeft().rotateLeft());
 

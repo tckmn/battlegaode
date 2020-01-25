@@ -168,8 +168,18 @@ public class Landscaper extends Unit {
             if (rc.canDepositDirt(Direction.CENTER))
                 rc.depositDirt(Direction.CENTER);
             // finally, dig dirt from direction opposite HQ
-            if (rc.canDigDirt(dirToHQ.opposite()))
-                rc.digDirt(dirToHQ.opposite());
+            // Note: Don't dig dirt from corners - only N, E, S, W
+            switch (dirToHQ) {
+                case NORTH: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                case SOUTH: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                case EAST: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                case WEST: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                default: 
+                    if (rc.canDigDirt(dirToHQ.rotateRight().rotateRight())) 
+                        rc.digDirt(dirToHQ.rotateRight().rotateRight());
+                    else 
+                        rc.digDirt(dirToHQ.rotateLeft().rotateLeft());
+            }
         }
 
     }
@@ -199,6 +209,12 @@ public class Landscaper extends Unit {
                     nav.tryMove(rc.getLocation().directionTo(loc));
             }
         }
+
+        // if a distance of >= 8 from HQ, get closer
+        // in particular, don't stand in corners since these get sniped by drones
+        if (currentLoc.distanceSquaredTo(hqLoc) >= 8)
+            nav.goTo(hqLoc);
+
 
         buryEnemyBuilding();
 
@@ -237,6 +253,22 @@ public class Landscaper extends Unit {
             Direction dir = currentLoc.directionTo(minDirtLocation);
             if (rc.canDepositDirt(dir))
                 rc.depositDirt(dir);
+
+            if (currentLoc.isAdjacentTo(hqLoc)) {
+                // finally, dig dirt from direction opposite HQ
+                // Note: Don't dig dirt from corners - only N, E, S, W
+                switch (dirToHQ) {
+                    case NORTH: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                    case SOUTH: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                    case EAST: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                    case WEST: if (rc.canDigDirt(dirToHQ.opposite())) rc.digDirt(dirToHQ.opposite());
+                    default: 
+                        if (rc.canDigDirt(dirToHQ.rotateRight().rotateRight())) 
+                            rc.digDirt(dirToHQ.rotateRight().rotateRight());
+                        else 
+                            rc.digDirt(dirToHQ.rotateLeft().rotateLeft());
+                }
+            }
 
             // otherwise dig some dirt
             if (rc.canDigDirt(dirToHQ.opposite()))
