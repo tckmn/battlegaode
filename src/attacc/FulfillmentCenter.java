@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public class FulfillmentCenter extends Building {
     boolean hasBuiltDrone = false;
+    int soupPreviousTurn = 0;
 
     public FulfillmentCenter(RobotController r) {
         super(r);
@@ -15,8 +16,11 @@ public class FulfillmentCenter extends Building {
         if (rc.getRoundNum() == proteccRound)
             hasBuiltDrone = false;
         
-        if (hasBuiltDrone)
+        // water reaches height 5 on turn 1210
+        if (hasBuiltDrone && (rc.getRoundNum() <= 1210 || soupPreviousTurn <= 250)) {
+            soupPreviousTurn = rc.getTeamSoup();
             return;
+        }
         System.out.println("looking for nearby robots!");
         // find the nearby miner (hopefully exists and is unique)
         RobotInfo[] neighbors = rc.senseNearbyRobots(2);
@@ -43,5 +47,6 @@ public class FulfillmentCenter extends Building {
                     || tryBuild(RobotType.DELIVERY_DRONE, dirToHQ.rotateRight()))
                 hasBuiltDrone = true;
         }
+        soupPreviousTurn = rc.getTeamSoup();
     }
 }

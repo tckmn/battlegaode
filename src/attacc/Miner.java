@@ -30,6 +30,8 @@ public class Miner extends Unit {
     MapLocation [] locsToCheck;
     boolean [] locsTried = {false, false, false, false, false, false, false, false};
 
+    boolean proteccMode = false;
+
     public Miner(RobotController r) {
         super(r);
     }
@@ -56,6 +58,10 @@ public class Miner extends Unit {
 
 
         checkIfStuck();
+        if (secondMiner)
+            proteccMode = proteccMode || (rc.getRoundNum() >= proteccRound
+                    || rc.getTeamSoup() >= 200 && (canSenseEnemy(RobotType.LANDSCAPER)
+                    || (rc.getRoundNum() >= attaccRound && rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc)));
         if (firstMiner)
             minerAttacc();
         // conditions for defense:
@@ -68,9 +74,7 @@ public class Miner extends Unit {
         // modification: Don't go into early protection mode unless we have at least 200 soup
         // We need to focus on attack first since we are fundamentally a rush bot
         // 200 means will take precedence over net guns but not landscapers
-        else if (secondMiner && (rc.getRoundNum() >= proteccRound
-            || rc.getTeamSoup() >= 200 && (canSenseEnemy(RobotType.LANDSCAPER)
-            || (rc.getRoundNum() >= attaccRound && rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc))))
+        else if (secondMiner && proteccMode)
             minerProtecc();
         else
             minerGetSoup();

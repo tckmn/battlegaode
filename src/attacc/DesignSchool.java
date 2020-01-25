@@ -27,7 +27,15 @@ public class DesignSchool extends Building {
         if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16 && soupPreviousTurn < 150
             || (landscapersBuilt >= 8 && soupPreviousTurn < 250)) {
             soupPreviousTurn = rc.getTeamSoup();
-            return;
+            // if you see at least one net gun already, then you can build more landscapers as long as soupPreviousTurn >= 150
+            RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
+            boolean nearbyNetGun = false;
+            for (RobotInfo robot : nearbyRobots) {
+                if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam())
+                    nearbyNetGun = true;
+            }
+            if (!nearbyNetGun || soupPreviousTurn < 150)
+                return;
         }
 
         // if we see an enemy drone but no friendly net gun, stop building landscapers
