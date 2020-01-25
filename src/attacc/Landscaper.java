@@ -67,12 +67,21 @@ public class Landscaper extends Unit {
 
         // if not adjacent to enemy HQ, try to go there and otherwise dig dirt (don't deposit except on enemy HQ)
         if (enemyHQ == null || !rc.getLocation().isAdjacentTo(enemyHQ)) {
+            buryEnemyBuilding();
             nav.goTo(enemyHQ);
             if (rc.isReady() && currentDir != null) rc.digDirt(currentDir.opposite());
         }
 
         // pile on the dirt
-        if (rc.canDepositDirt(currentDir)){
+        if (rc.getLocation().isAdjacentTo(enemyHQ) && rc.senseRobotAtLocation(enemyHQ).dirtCarrying >= 20 && rc.canDepositDirt(currentDir)){
+          rc.depositDirt(currentDir);
+          System.out.println("I deposited dirt!");
+        }
+
+        buryEnemyBuilding();
+
+        // pile on the dirt
+        if (rc.getLocation().isAdjacentTo(enemyHQ) && rc.canDepositDirt(currentDir)){
           rc.depositDirt(currentDir);
           System.out.println("I deposited dirt!");
         }
@@ -96,7 +105,16 @@ public class Landscaper extends Unit {
 
     void runLandscaperProtecc() throws GameActionException {
         ArrayList<MapLocation> wallLocations = new ArrayList<MapLocation>(8);
+        MapLocation currentLoc = rc.getLocation();
         if (hqLoc == null) return;
+        if (currentLoc.isAdjacentTo(hqLoc)) {
+            // if HQ has dirt on it, remove dirt
+            Direction dirToHQ = currentLoc.directionTo(hqLoc);
+            if (rc.canDigDirt(dirToHQ))
+                rc.digDirt(dirToHQ);
+        }
+        buryEnemyBuilding();
+
         Direction designSchoolToHQ = designSchoolLoc.directionTo(hqLoc);
         Direction [] wallDirs = {
             designSchoolToHQ,
@@ -123,7 +141,6 @@ public class Landscaper extends Unit {
             }
         }
         System.out.println(wallLocations.size() + " locations around HQ not occupied by other landscapers!");
-        MapLocation currentLoc = rc.getLocation();
         // try to walk to first unoccupied location in list (unless already there)
         if (!landscaperInPlace && wallLocations.size() > 0) {
             if (wallLocations.get(0).equals(currentLoc))
@@ -146,20 +163,15 @@ public class Landscaper extends Unit {
         }
 
         if (currentLoc.isAdjacentTo(hqLoc)) {
-            // if HQ has dirt on it, remove dirt
             Direction dirToHQ = currentLoc.directionTo(hqLoc);
-            if (rc.canDigDirt(dirToHQ))
-                rc.digDirt(dirToHQ);
-            // TODO: second-best thing: put dirt on enemy building in range
-            if (landscaperInPlace) {
-                // build wall
-                if (rc.canDepositDirt(Direction.CENTER))
-                    rc.depositDirt(Direction.CENTER);
-                // finally, dig dirt from direction opposite HQ
-                if (rc.canDigDirt(dirToHQ.opposite()))
-                    rc.digDirt(dirToHQ.opposite());
-            }
+            // build wall
+            if (rc.canDepositDirt(Direction.CENTER))
+                rc.depositDirt(Direction.CENTER);
+            // finally, dig dirt from direction opposite HQ
+            if (rc.canDigDirt(dirToHQ.opposite()))
+                rc.digDirt(dirToHQ.opposite());
         }
+
     }
 
     void runLandscaperEmergencyProtecc() throws GameActionException {
@@ -188,6 +200,8 @@ public class Landscaper extends Unit {
             }
         }
 
+        buryEnemyBuilding();
+
         // see which of the locations has the smallest amount of dirt on it (so we can put dirt there)
         int minDirt = Integer.MAX_VALUE;
         MapLocation minDirtLocation = null;
@@ -195,6 +209,17 @@ public class Landscaper extends Unit {
             if (rc.senseElevation(loc) < minDirt) {
                 minDirtLocation = loc;
                 minDirt = rc.senseElevation(loc);
+            }
+        }
+
+        // if there is a tile around the HQ (but not adjacent to landscaper) with dirt < (min dirt in adjacent tiles) - 10, then go in that direction
+        for (Direction dir : Util.directions) {
+            MapLocation loc = hqLoc.add(dir);
+            if (rc.canSenseLocation(loc) && rc.senseElevation(loc) < minDirt - 10) {
+                Direction dirToLoc = currentLoc.directionTo(loc);
+                nav.tryMove(dirToLoc);
+                nav.tryMove(dirToLoc.rotateLeft());
+                nav.tryMove(dirToLoc.rotateRight());
             }
         }
 
@@ -220,6 +245,39 @@ public class Landscaper extends Unit {
                 rc.digDirt(dirToHQ.opposite().rotateRight());
             if (rc.canDigDirt(dirToHQ.opposite().rotateLeft()))
                 rc.digDirt(dirToHQ.opposite().rotateLeft());
+        }
+    }
+
+    void buryEnemyBuilding () throws GameActionException {
+        System.out.println("Looking for enemy buildings to bury");
+        // put dirt on enemy building with the most dirt already on it
+        RobotInfo [] enemies = rc.senseNearbyRobots(2, rc.getTeam().opponent());
+        int maxDirt = 0;
+        RobotInfo bestTarget = null;
+        for (RobotInfo enemy : enemies) {
+            if (enemy.type == RobotType.VAPORATOR || enemy.type == RobotType.DESIGN_SCHOOL 
+                || enemy.type == RobotType.FULFILLMENT_CENTER || enemy.type == RobotType.NET_GUN) {
+                if (enemy.dirtCarrying >= maxDirt) {
+                    bestTarget = enemy;
+                    maxDirt = enemy.dirtCarrying;
+                }
+            }
+        }
+        MapLocation currentLoc = rc.getLocation();
+        // if there is a target but not carrying dirt, then dig some up
+        if (bestTarget != null && rc.getDirtCarrying() == 0) {
+            MapLocation targetLoc = bestTarget.location;
+            if (rc.canDigDirt(targetLoc.directionTo(currentLoc)))
+                rc.digDirt(targetLoc.directionTo(currentLoc));
+            else if (rc.canDigDirt(targetLoc.directionTo(currentLoc).rotateRight()))
+                rc.digDirt(targetLoc.directionTo(currentLoc).rotateRight());
+            else if (rc.canDigDirt(targetLoc.directionTo(currentLoc).rotateLeft()))
+                rc.digDirt(targetLoc.directionTo(currentLoc).rotateLeft());
+        }
+
+        if (bestTarget != null && rc.canDepositDirt(currentLoc.directionTo(bestTarget.location))) {
+            System.out.println("Burying building at " + bestTarget.location);
+            rc.depositDirt(rc.getLocation().directionTo(bestTarget.location));
         }
     }
 }
