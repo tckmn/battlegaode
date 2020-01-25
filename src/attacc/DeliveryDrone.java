@@ -14,6 +14,8 @@ public class DeliveryDrone extends Unit {
     MapLocation [] waterTiles = new MapLocation[100];
     int waterTileCounter = 0;
 
+    ArrayList<MapLocation> netGuns = new ArrayList<MapLocation>();
+
     public DeliveryDrone(RobotController r) {
         super(r);
     }
@@ -24,6 +26,22 @@ public class DeliveryDrone extends Unit {
 
         if (rc.isReady()) 
             recentLocs[rc.getRoundNum() % 5] = rc.getLocation();
+
+        // add enemy net guns (and HQ) to list of net guns
+        RobotInfo [] robots = rc.senseNearbyRobots();
+        for (RobotInfo robot : robots) {
+            if ((robot.type == RobotType.HQ || robot.type == RobotType.NET_GUN) && robot.team != rc.getTeam()) {
+                if (!netGuns.contains(robot.location)) netGuns.add(robot.location);
+            }
+        }
+        // also remove net guns from list if they are gone/buried
+        for (MapLocation loc : netGuns) {
+            if (rc.canSenseLocation(loc)) {
+                RobotInfo robot = rc.senseRobotAtLocation(loc);
+                if (robot == null || robot.team == rc.getTeam() || (robot.type != RobotType.NET_GUN && robot.type != RobotType.HQ))
+                    netGuns.remove(loc);
+            }
+        }
 
         // add any flooded tiles in vision radius to waterTiles (except duplicates)
         int n = (int)(Math.sqrt(rc.getCurrentSensorRadiusSquared()));
@@ -120,13 +138,13 @@ public class DeliveryDrone extends Unit {
         MapLocation currentLoc = rc.getLocation();
         Direction dirToHQ = currentLoc.directionTo(hqLoc);
         if (spinUp) {
-            nav.tryMove(dirToHQ.rotateRight());
-            nav.tryMove(dirToHQ.rotateRight().rotateRight());
-            nav.tryMove(dirToHQ.rotateRight().rotateRight().rotateRight());
+            tryMove(dirToHQ.rotateRight());
+            tryMove(dirToHQ.rotateRight().rotateRight());
+            tryMove(dirToHQ.rotateRight().rotateRight().rotateRight());
         } else {
-            nav.tryMove(dirToHQ.rotateLeft());
-            nav.tryMove(dirToHQ.rotateLeft().rotateLeft());
-            nav.tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
+            tryMove(dirToHQ.rotateLeft());
+            tryMove(dirToHQ.rotateLeft().rotateLeft());
+            tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
         }
     }
 
@@ -196,7 +214,7 @@ public class DeliveryDrone extends Unit {
 
             // otherwise, try to go to the next possible enemy HQ location
             if (!(rc.getLocation().equals(getNearestEnemyHQPossibility())))
-                nav.goTo(getNearestEnemyHQPossibility());
+                goTo(getNearestEnemyHQPossibility());
             // if already at enemy HQ location, then there is nothing there, so we have the wrong spot
             else
                 enemyHQPossibilities.remove(getNearestEnemyHQPossibility()); // probably redundant now
@@ -227,9 +245,9 @@ public class DeliveryDrone extends Unit {
             if (nearestWater != null) {
                 if (currentLoc.isAdjacentTo(nearestWater) && rc.canDropUnit(currentLoc.directionTo(nearestWater)))
                     rc.dropUnit(currentLoc.directionTo(nearestWater));
-                cautiouslyGoTo(nearestWater);
+                goTo(nearestWater);
             } else
-                cautiouslyGoTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
+                goTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
         }
         // if in range of an enemy unit, pick it up
         RobotInfo [] adjacentEnemies = rc.senseNearbyRobots(2, rc.getTeam().opponent());
@@ -239,12 +257,12 @@ public class DeliveryDrone extends Unit {
 
         // otherwise, circle enemy HQ looking for fresh meat
         if (currentLoc.distanceSquaredTo(enemyHQ) > 25)
-            cautiouslyGoTo(enemyHQ);
+            goTo(enemyHQ);
         else {
             Direction dirToHQ = currentLoc.directionTo(enemyHQ);
             Direction moveDir = dirToHQ;
             for (int counter = 0; counter < 4; counter ++) {
-                if (!(currentLoc.add(moveDir).distanceSquaredTo(enemyHQ) > 13 && nav.tryMove(moveDir))) {
+                if (!(currentLoc.add(moveDir).distanceSquaredTo(enemyHQ) > 13 && tryMove(moveDir))) {
                     if (spinUp)
                         moveDir = moveDir.rotateRight();
                     else
@@ -260,18 +278,45 @@ public class DeliveryDrone extends Unit {
 
     // go to location while avoiding enemy HQ
     // TODO: Also avoid enemy net guns
-    public void cautiouslyGoTo(MapLocation loc) throws GameActionException {
+    public void goTo(MapLocation loc) throws GameActionException {
         MapLocation currentLoc = rc.getLocation();
         Direction dir = currentLoc.directionTo(loc);
-        if (rc.canMove(dir) && currentLoc.add(dir).distanceSquaredTo(enemyHQ) > 13)
+        if (canMove(dir))
             rc.move(dir);
-        else if (rc.canMove(dir.rotateLeft()) && currentLoc.add(dir.rotateLeft()).distanceSquaredTo(enemyHQ) > 13)
+        else if (canMove(dir.rotateLeft()))
             rc.move(dir.rotateLeft());
-        else if (rc.canMove(dir.rotateRight()) && currentLoc.add(dir.rotateRight()).distanceSquaredTo(enemyHQ) > 13)
+        else if (canMove(dir.rotateRight()))
             rc.move(dir.rotateRight());
-        else if (rc.canMove(dir.rotateLeft().rotateLeft()) && currentLoc.add(dir.rotateLeft().rotateLeft()).distanceSquaredTo(enemyHQ) > 13)
+        else if (canMove(dir.rotateLeft().rotateLeft()))
             rc.move(dir.rotateLeft().rotateLeft());
-        else if (rc.canMove(dir.rotateRight().rotateRight()) && currentLoc.add(dir.rotateRight().rotateRight()).distanceSquaredTo(enemyHQ) > 13)
+        else if (canMove(dir.rotateRight().rotateRight()))
             rc.move(dir.rotateRight().rotateRight());
+    }
+
+    // test if drone can move in direction and there is no net gun that would shoot it down
+    // NOTE: If enemy builds net gun right next to our drone, this would immobilize us
+    // To correct for this, this method will return true if we are currently in range of a net gun
+    // However, we should never move within range of enemy HQ (net gun might be new, but HQ is not)
+    public boolean canMove(Direction dir) throws GameActionException {
+        if (!rc.canMove(dir))
+            return false;
+        MapLocation currentLoc = rc.getLocation();
+        MapLocation newLoc = currentLoc.add(dir);
+
+        if (enemyHQ != null && newLoc.distanceSquaredTo(enemyHQ) <= 13) return false;
+
+        for (MapLocation gun : netGuns) {
+            if (currentLoc.distanceSquaredTo(gun) <= 13) return true;
+            if (newLoc.distanceSquaredTo(gun) <= 13) return false;
+        }
+        return true;
+    }
+
+    public boolean tryMove(Direction dir) throws GameActionException {
+        if (canMove(dir)) {
+            rc.move(dir);
+            return true;
+        }
+        return false;
     }
 }
