@@ -11,7 +11,7 @@ public class Robot {
 
     int attaccRound = 150; // don't stop attack before this turn unless necessary
     int proteccRound = 250; // turn to shift to defensive strategy (should be 250, set lower for testing)
-    int emergencyProteccRound = 450; // needs to be before first sea level rise
+    int emergencyProteccRound = 400; // needs to be before first sea level rise
     int earlyProtecc = 6; // extra soup needed to start building wall early (units of soup/early round)
 
     MapLocation enemyHQ = null;
@@ -85,7 +85,6 @@ public class Robot {
         return false;
     }
 
-        // TODO: I think there's a more efficient method in the new specs
     MapLocation findNearestSoup() throws GameActionException {
         MapLocation [] soupLocations = rc.senseNearbySoup();
         MapLocation currentLoc = rc.getLocation();

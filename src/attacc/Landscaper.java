@@ -177,7 +177,7 @@ public class Landscaper extends Unit {
                 default: 
                     if (rc.canDigDirt(dirToHQ.rotateRight().rotateRight())) 
                         rc.digDirt(dirToHQ.rotateRight().rotateRight());
-                    else 
+                    else if (rc.canDigDirt(dirToHQ.rotateLeft().rotateLeft())) 
                         rc.digDirt(dirToHQ.rotateLeft().rotateLeft());
             }
         }

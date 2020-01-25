@@ -10,6 +10,7 @@ public class Miner extends Unit {
     int minersBuilt = 0;
     boolean hasBuiltDesignSchool = false;
     boolean hasBuiltFulfillmentCenter = false;
+    boolean hasBuiltRefinery = false;
     boolean hasTransmittedEnemyHQLocs = false;
     boolean hasBuiltNetGun = false;
     int designSchoolTurnBuilt = -1;
@@ -19,12 +20,17 @@ public class Miner extends Unit {
 
     boolean useBetterNav = false;
 
+    MapLocation refineryLoc = null;
+
     public Miner(RobotController r) {
         super(r);
     }
 
     public void takeTurn() throws GameActionException {
         super.takeTurn();
+
+        if (refineryLoc == null && hqLoc != null)
+            refineryLoc = hqLoc;
 
         // maybe these should go in constructor
         if (rc.getRoundNum() == 2) {
@@ -54,7 +60,7 @@ public class Miner extends Unit {
         // modification: Don't go into early protection mode unless we have at least 200 soup
         // We need to focus on attack first since we are fundamentally a rush bot
         // 200 means will take precedence over net guns but not landscapers
-        else if (secondMiner && !hasBuiltDesignSchool && (rc.getRoundNum() >= proteccRound
+        else if (secondMiner && (!hasBuiltDesignSchool || !hasBuiltRefinery) && (rc.getRoundNum() >= proteccRound
             || rc.getTeamSoup() >= 200 && (canSenseEnemy(RobotType.LANDSCAPER)
             || (rc.getRoundNum() >= attaccRound && rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc))))
             minerProtecc();
@@ -238,21 +244,47 @@ public class Miner extends Unit {
             else if (tryBuild(RobotType.DESIGN_SCHOOL, dir.rotateLeft().rotateLeft()))
                 hasBuiltDesignSchool = true;
     }
+
+    void tryBuildRefinery(Direction dir) throws GameActionException {
+        if(rc.getLocation().equals(hqLoc.add(dir).add(dir)))
+            if(tryBuild(RobotType.REFINERY, dir))
+                hasBuiltRefinery = true;
+            else if (tryBuild(RobotType.REFINERY, dir.rotateRight()))
+                hasBuiltRefinery = true;
+            else if (tryBuild(RobotType.REFINERY, dir.rotateRight().rotateRight()))
+                hasBuiltRefinery = true;
+            else if (tryBuild(RobotType.REFINERY, dir.rotateLeft()))
+                hasBuiltRefinery = true;
+            else if (tryBuild(RobotType.REFINERY, dir.rotateLeft().rotateLeft()))
+                hasBuiltRefinery = true;
+    }
     
 
     //pseudo code for new minerProtecc method  
     void minerProtecc() throws GameActionException {
-        System.out.println("In protection mode; trying to build defensive design school");
-        for(int counter = 0; counter < 4; counter++)
-        {
-            if (!dirsTried[counter]) {
-                checkDir(counter);
-                break;
+        if (!hasBuiltDesignSchool) {
+            System.out.println("In protection mode; trying to build defensive design school");
+            for(int counter = 0; counter < 4; counter++)
+            {
+                if (!dirsTried[counter]) {
+                    checkDir(counter, true);
+                    break;
+                }
+            }
+        } else {
+            System.out.println("Built defensive design school; now trying to build refinery");
+            for(int counter = 0; counter < 4; counter++)
+            {
+                if (!dirsTried[counter]) {
+                    checkDir(counter, false);
+                    break;
+                }
             }
         }
+
     }
 
-    void checkDir(int counter) throws GameActionException{
+    void checkDir(int counter, boolean designSchool) throws GameActionException{
         Direction dir = dirsToCheck[counter];
         MapLocation loc = hqLoc.add(dir).add(dir);
         if (!(rc.onTheMap(loc))) {
@@ -266,18 +298,28 @@ public class Miner extends Unit {
             if(isStuck) 
                 dirsTried[counter] = true;
         } else if (rc.isReady() && rc.getTeamSoup() >= 150) {
-            tryBuildDefensiveDesignSchool(dir);
+            if (designSchool)
+                tryBuildDefensiveDesignSchool(dir);
+            else
+                tryBuildRefinery(dir);
             dirsTried[counter] = true;
         }
     }
 
     void minerGetSoup() throws GameActionException {
+        // if you see a refinery, add that to list of refinery locations
+        RobotInfo [] nearbyBots = rc.senseNearbyRobots();
+        for (RobotInfo bot : nearbyBots) {
+            if (bot.type == RobotType.REFINERY && bot.team == rc.getTeam())
+                refineryLoc = bot.location;
+        }
+
         //System.out.println("Design school is built; now just search for soup");
+        System.out.println("Last soup mined at " + lastSoupMined);
         System.out.println("Current soup carrying: " + rc.getSoupCarrying());
         // if adjacent to HQ and many landscapers nearby, get away from HQ so landscapers can move in
         // move into water if necessary to get out of the way
         if (rc.getRoundNum() > proteccRound && rc.getLocation().distanceSquaredTo(hqLoc) <= 8) {
-            RobotInfo [] nearbyBots = rc.senseNearbyRobots();
             int landscaperCount = 0;
             for (RobotInfo robot : nearbyBots)
                 if (robot.type == RobotType.LANDSCAPER && robot.getTeam() == rc.getTeam())
@@ -295,7 +337,8 @@ public class Miner extends Unit {
 
         for (Direction dir : Util.directions)
         {
-            tryMine(dir);
+            if (rc.getSoupCarrying() >= 98) tryRefine(dir);
+            if (tryMine(dir)) lastSoupMined = rc.getLocation().add(dir);
             tryRefine(dir);
         }
         
@@ -307,21 +350,30 @@ public class Miner extends Unit {
         if (targetLoc != null && !(targetLoc.equals(hqLoc)) && rc.canSenseLocation(targetLoc)
             && rc.senseSoup(targetLoc) == 0)
             targetLoc = null;
+        // also zero out lastSoupMined when empty
+        if (lastSoupMined != null && rc.canSenseLocation(lastSoupMined) && rc.senseSoup(lastSoupMined) == 0) {
+            boolean outOfSoup = true;
+            for (Direction dir : Util.directions) {
+                MapLocation locToCheck = lastSoupMined.add(dir);
+                outOfSoup = outOfSoup && !rc.onTheMap(locToCheck) || (rc.canSenseLocation(locToCheck) && rc.senseSoup(locToCheck) == 0);
+            }
+            if (outOfSoup) lastSoupMined = null;
+        }
 
         if (rc.getSoupCarrying() == RobotType.MINER.soupLimit){
             System.out.println("Has enough soup; going home");
-            targetLoc = hqLoc;
+            targetLoc = refineryLoc;
         }
         // if stuck, go home, unless already at home
         if (isStuck){
             if (rc.getLocation().isAdjacentTo(hqLoc))
                 targetLoc = null;
             else
-                targetLoc = hqLoc;
+                targetLoc = refineryLoc;
         }
 
         MapLocation soupLoc = findNearestSoup();
-        if (targetLoc != hqLoc && soupLoc != null && !isStuck) {
+        if (targetLoc != refineryLoc && soupLoc != null && !isStuck) {
             targetLoc = soupLoc;
         }
 
