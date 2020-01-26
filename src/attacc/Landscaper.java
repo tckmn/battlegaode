@@ -45,7 +45,7 @@ public class Landscaper extends Unit {
             }
         }
         // also remove dirt from fulfillment centers
-        if (designSchool != null) {
+        if (fulfillmentCenter != null) {
             if (rc.canDigDirt(rc.getLocation().directionTo(fulfillmentCenter))) {
                 rc.digDirt(rc.getLocation().directionTo(fulfillmentCenter));
                 System.out.println("Removed dirt from friendly fulfillment center!");
