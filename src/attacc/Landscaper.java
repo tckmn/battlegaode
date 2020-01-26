@@ -20,6 +20,7 @@ public class Landscaper extends Unit {
         super.takeTurn();
 
         // Highest priority: Remove dirt from adjacent friendly net guns and design schools
+        // NOTE: If fulfillment center is next to own HQ, don't remove dirt (this needs to get buried)
         // Do this on both attack and defense
         MapLocation netGun = null;
         MapLocation designSchool = null;
@@ -33,7 +34,8 @@ public class Landscaper extends Unit {
             if (robot.type == RobotType.DESIGN_SCHOOL && robot.team == rc.getTeam()) {
                 designSchool = robot.location;
             }
-            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.team == rc.getTeam()) {
+            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.team == rc.getTeam()
+                    && hqLoc != null && !robot.location.isAdjacentTo(hqLoc)) {
                 fulfillmentCenter = robot.location;
             }
         }
