@@ -19,6 +19,35 @@ public class Landscaper extends Unit {
     public void takeTurn() throws GameActionException {
         super.takeTurn();
 
+        // Highest priority: Remove dirt from adjacent friendly net guns and design schools
+        // Do this on both attack and defense
+        MapLocation netGun = null;
+        MapLocation designSchool = null;
+        RobotInfo [] robots = rc.senseNearbyRobots(2, rc.getTeam());
+        for (RobotInfo robot : robots) {
+            if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam()) {
+                netGun = robot.location;
+                System.out.println("Found friendly net gun!");
+            }
+            if (robot.type == RobotType.DESIGN_SCHOOL && robot.team == rc.getTeam()) {
+                designSchool = robot.location;
+            }
+        }
+        // If there is a nearby net gun with dirt on it, remove the dirt from that
+        if (netGun != null) {
+            if (rc.canDigDirt(rc.getLocation().directionTo(netGun))) {
+                rc.digDirt(rc.getLocation().directionTo(netGun));
+                System.out.println("Removed dirt from friendly net gun!");
+            }
+        }
+        // also remove dirt from design schools
+        if (designSchool != null) {
+            if (rc.canDigDirt(rc.getLocation().directionTo(designSchool))) {
+                rc.digDirt(rc.getLocation().directionTo(designSchool));
+                System.out.println("Removed dirt from friendly fulfillment center!");
+            }
+        }
+
         if (locsToElevate == null) {
             locsToElevate = comms.receiveElevatorRequest();
             if (locsToElevate != null)
@@ -62,8 +91,6 @@ public class Landscaper extends Unit {
 
     void runLandscaperAttacc() throws GameActionException {
         // find enemy HQ
-        MapLocation netGun = null;
-        MapLocation designSchool = null;
         RobotInfo [] robots = rc.senseNearbyRobots();
         for (RobotInfo robot : robots) {
             if (robot.type == RobotType.HQ && robot.team != rc.getTeam()) {
@@ -72,31 +99,7 @@ public class Landscaper extends Unit {
                 System.out.println("Found enemy HQ!");
             }
         }
-        // now look for friendly net gun and design school ON ADJACENT TILES
-        robots = rc.senseNearbyRobots(2, rc.getTeam());
-        for (RobotInfo robot : robots) {
-            if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam()) {
-                netGun = robot.location;
-                System.out.println("Found friendly net gun!");
-            }
-            if (robot.type == RobotType.DESIGN_SCHOOL && robot.team == rc.getTeam()) {
-                designSchool = robot.location;
-            }
-        }
-        // If there is a nearby net gun with dirt on it, remove the dirt from that
-        if (netGun != null) {
-            if (rc.canDigDirt(rc.getLocation().directionTo(netGun))) {
-                rc.digDirt(rc.getLocation().directionTo(netGun));
-                System.out.println("Removed dirt from friendly net gun!");
-            }
-        }
-        // also remove dirt from design schools
-        if (designSchool != null) {
-            if (rc.canDigDirt(rc.getLocation().directionTo(designSchool))) {
-                rc.digDirt(rc.getLocation().directionTo(designSchool));
-                System.out.println("Removed dirt from friendly fulfillment center!");
-            }
-        }
+
 
         // if not adjacent to enemy HQ, try to go there and otherwise dig dirt (don't deposit except on enemy HQ)
         if (enemyHQ == null || !rc.getLocation().isAdjacentTo(enemyHQ)) {
