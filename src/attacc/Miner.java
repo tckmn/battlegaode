@@ -41,6 +41,12 @@ public class Miner extends Unit {
 
         if (refineryLoc == null && hqLoc != null)
             refineryLoc = hqLoc;
+        if (!refineryLoc.equals(hqLoc) && rc.canSenseLocation(refineryLoc)) {
+            RobotInfo putativeRefinery = rc.senseRobotAtLocation(refineryLoc);
+            if (putativeRefinery == null || putativeRefinery.team != rc.getTeam()
+                    || putativeRefinery.type != RobotType.HQ)
+                refineryLoc = null;
+        }
 
         // maybe these should go in constructor
         if (rc.getRoundNum() == 2) {
@@ -310,25 +316,29 @@ public class Miner extends Unit {
             }
         } else {
             // start building defensive net guns
-            for (int counter = 0; counter < 8; counter ++) {
-                if (!locsTried[counter]) {
-                    checkLoc(counter);
-                    break;
+            MapLocation currentLoc = rc.getLocation();
+            if (currentLoc.distanceSquaredTo(hqLoc) != 5) {
+                for (int counter = 0; counter < 8; counter ++) {
+                    if (!locsTried[counter]) {
+                        checkLoc(counter);
+                        break;
+                    }
                 }
             }
-            MapLocation currentLoc = rc.getLocation();
             if (rc.senseElevation(currentLoc) >= 20) {
                 // see if there is an adjacent empty tile not adjacent to HQ with elevation >= 20
                 boolean hasBuiltDefensiveNetGun = false;
                 MapLocation placeForNetGun = null;
                 for (Direction dir : Util.directions) {
                     MapLocation newLoc = currentLoc.add(dir);
-                    RobotInfo robotAtNewLoc = rc.senseRobotAtLocation(newLoc);
-                    if (robotAtNewLoc != null && robotAtNewLoc.type == RobotType.NET_GUN && robotAtNewLoc.team == rc.getTeam())
-                        hasBuiltDefensiveNetGun = true;
-                    int newElevation = rc.senseElevation(newLoc);
-                    if (newElevation >= 20 && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
-                        placeForNetGun = newLoc;
+                    if (rc.canSenseLocation(newLoc)) {
+                        RobotInfo robotAtNewLoc = rc.senseRobotAtLocation(newLoc);
+                        if (robotAtNewLoc != null && robotAtNewLoc.type == RobotType.NET_GUN && robotAtNewLoc.team == rc.getTeam())
+                            hasBuiltDefensiveNetGun = true;
+                        int newElevation = rc.senseElevation(newLoc);
+                        if (newElevation >= 20 && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
+                            placeForNetGun = newLoc;
+                    }
                 }
                 System.out.println("Trying to build things at location " + placeForNetGun);
                 if (placeForNetGun != null) {
