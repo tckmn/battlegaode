@@ -23,6 +23,7 @@ public class Landscaper extends Unit {
         // Do this on both attack and defense
         MapLocation netGun = null;
         MapLocation designSchool = null;
+        MapLocation fulfillmentCenter = null;
         RobotInfo [] robots = rc.senseNearbyRobots(2, rc.getTeam());
         for (RobotInfo robot : robots) {
             if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam()) {
@@ -32,6 +33,9 @@ public class Landscaper extends Unit {
             if (robot.type == RobotType.DESIGN_SCHOOL && robot.team == rc.getTeam()) {
                 designSchool = robot.location;
             }
+            if (robot.type == RobotType.FULFILLMENT_CENTER && robot.team == rc.getTeam()) {
+                fulfillmentCenter = robot.location;
+            }
         }
         // If there is a nearby net gun with dirt on it, remove the dirt from that
         if (netGun != null) {
@@ -40,11 +44,18 @@ public class Landscaper extends Unit {
                 System.out.println("Removed dirt from friendly net gun!");
             }
         }
+        // also remove dirt from fulfillment centers
+        if (designSchool != null) {
+            if (rc.canDigDirt(rc.getLocation().directionTo(fulfillmentCenter))) {
+                rc.digDirt(rc.getLocation().directionTo(fulfillmentCenter));
+                System.out.println("Removed dirt from friendly fulfillment center!");
+            }
+        }
         // also remove dirt from design schools
         if (designSchool != null) {
             if (rc.canDigDirt(rc.getLocation().directionTo(designSchool))) {
                 rc.digDirt(rc.getLocation().directionTo(designSchool));
-                System.out.println("Removed dirt from friendly fulfillment center!");
+                System.out.println("Removed dirt from friendly design school!");
             }
         }
 
