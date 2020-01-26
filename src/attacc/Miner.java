@@ -343,8 +343,11 @@ public class Miner extends Unit {
                 System.out.println("Trying to build things at location " + placeForNetGun);
                 if (placeForNetGun != null) {
                     hasBuiltDefensiveNetGun = hasBuiltDefensiveNetGun || tryBuild(RobotType.NET_GUN, currentLoc.directionTo(placeForNetGun));
-                    hasBuiltFulfillmentCenter = hasBuiltDefensiveNetGun && 
-                            (hasBuiltFulfillmentCenter || tryBuild(RobotType.FULFILLMENT_CENTER, currentLoc.directionTo(placeForNetGun)));
+                    if (hasBuiltDefensiveNetGun) {
+                        hasBuiltFulfillmentCenter = hasBuiltFulfillmentCenter 
+                            || tryBuild(RobotType.FULFILLMENT_CENTER, currentLoc.directionTo(placeForNetGun));
+                        tryBuild(RobotType.DESIGN_SCHOOL, currentLoc.directionTo(placeForNetGun));
+                    }
                 }
             } else if (!hasRequestedElevator) {
                 MapLocation [] locsToElevate = {currentLoc, new MapLocation(-10,-10), new MapLocation(-10,-10)};
@@ -352,11 +355,11 @@ public class Miner extends Unit {
                 boolean landscaperInPlace = false;
                 for (Direction dir : Util.directions) {
                     MapLocation newLoc = currentLoc.add(dir);
-                    if (newLoc.distanceSquaredTo(hqLoc) == 5 || newLoc.distanceSquaredTo(hqLoc) == 8 && elevatorCounter < 3)
+                    if ((newLoc.distanceSquaredTo(hqLoc) == 5 || newLoc.distanceSquaredTo(hqLoc) == 8) && elevatorCounter < 3)
                         locsToElevate[elevatorCounter ++] = newLoc;
                     if (newLoc.distanceSquaredTo(hqLoc) == 2) {
                         RobotInfo robot = rc.senseRobotAtLocation(newLoc);
-                        if (robot.type == RobotType.LANDSCAPER && robot.team == rc.getTeam())
+                        if (robot != null && robot.type == RobotType.LANDSCAPER && robot.team == rc.getTeam())
                             landscaperInPlace = true;
                     }
                 }

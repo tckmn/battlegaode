@@ -7,6 +7,8 @@ public class DeliveryDrone extends Unit {
 
     boolean hasTransportedMiner = false;
     boolean hasReceivedEnemyHQLocations = false;
+    boolean hasRequestedElevator = true; // this gets reset when we pick up miner
+    MapLocation elevatorLocation = null;
 
     // whether to go spin up or spin down around enemy HQ
     boolean spinUp = true;
@@ -73,10 +75,10 @@ public class DeliveryDrone extends Unit {
     public void defensiveDrone () throws GameActionException {
         MapLocation currentLoc = rc.getLocation();
         if (!rc.isCurrentlyHoldingUnit()) {
-            // if in range of an enemy unit, pick it up
-            RobotInfo [] adjacentEnemies = rc.senseNearbyRobots(2, rc.getTeam().opponent());
+            // if in range of an enemy unit or cow, pick it up
+            RobotInfo [] adjacentEnemies = rc.senseNearbyRobots(2);
             for (RobotInfo robot : adjacentEnemies) 
-                if (rc.canPickUpUnit(robot.ID))
+                if (robot.team != rc.getTeam() && rc.canPickUpUnit(robot.ID))
                     rc.pickUpUnit(robot.ID);
 
             // if wall has missing places, put a landscaper on one of them (if possible)
@@ -86,11 +88,35 @@ public class DeliveryDrone extends Unit {
                 if (rc.canSenseLocation(loc) && !rc.isLocationOccupied(loc))
                     landscapersMissing ++;
             }
+
+            RobotInfo [] adjacentFriends = rc.senseNearbyRobots(2, rc.getTeam());
             if (landscapersMissing > 0) {
-                RobotInfo [] adjacentFriends = rc.senseNearbyRobots(2, rc.getTeam());
                 for (RobotInfo robot : adjacentFriends)
                     if (robot.type == RobotType.LANDSCAPER && !robot.location.isAdjacentTo(hqLoc) && rc.canPickUpUnit(robot.ID))
                         rc.pickUpUnit(robot.ID);
+            }
+
+            // if there is a miner who has done its job, pick it up
+            for (RobotInfo robot : adjacentFriends) {
+                if (robot.type == RobotType.MINER && (robot.location.distanceSquaredTo(hqLoc) == 5 || robot.location.distanceSquaredTo(hqLoc) == 8)
+                        && rc.canPickUpUnit(robot.ID)) {
+                    int occupiedSquaresNearMiner = 0;
+                    for (Direction dir : Util.directions) {
+                        MapLocation locAdjacentToMiner = robot.location.add(dir);
+                        if (rc.canSenseLocation(locAdjacentToMiner) 
+                                && (hqLoc.distanceSquaredTo(locAdjacentToMiner) == 5 || hqLoc.distanceSquaredTo(locAdjacentToMiner) == 8)) {
+                            RobotInfo robotNextToMiner = rc.senseRobotAtLocation(locAdjacentToMiner);
+                            if (robotNextToMiner != null && robotNextToMiner.team == rc.getTeam()
+                                    && (robotNextToMiner.type == RobotType.NET_GUN || robotNextToMiner.type == RobotType.FULFILLMENT_CENTER
+                                    || robotNextToMiner.type == RobotType.LANDSCAPER || robotNextToMiner.type == RobotType.DESIGN_SCHOOL))
+                                occupiedSquaresNearMiner ++;
+                        }
+                    }
+                    if (occupiedSquaresNearMiner >= 2) {
+                        rc.pickUpUnit(robot.ID);
+                        hasRequestedElevator = false;
+                    }
+                }
             }
 
             // orbit HQ as a sentry
@@ -119,7 +145,7 @@ public class DeliveryDrone extends Unit {
                     nav.goTo(nearestWater);
                 } else
                     nav.goTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
-            } else {
+            } else if (rc.senseRobot(me.heldUnitID).type == RobotType.LANDSCAPER) {
                 System.out.println("Carrying friendly landscaper to place on wall");
                 // find missing wall location to put unit on
                 for (Direction dir : Util.directions) {
@@ -130,6 +156,73 @@ public class DeliveryDrone extends Unit {
                 }
                 if (rc.isCurrentlyHoldingUnit()) // didn't succeed in dropping it
                     orbitHQ();
+            } else if (rc.senseRobot(me.heldUnitID).type == RobotType.MINER) {
+                // go to a place where the miner will have its own corner
+                MapLocation loc1, loc2, loc3, loc4, loc5, loc6, loc7, loc8, loc9, loc10, loc11, loc12;
+                loc1 = hqLoc.translate(1,2);
+                loc2 = hqLoc.translate(2,1);
+                loc3 = hqLoc.translate(-1,2);
+                loc4 = hqLoc.translate(-2,1);
+                loc5 = hqLoc.translate(1,-2);
+                loc6 = hqLoc.translate(2,-1);
+                loc7 = hqLoc.translate(-1,-2);
+                loc8 = hqLoc.translate(-2,-1);
+                loc9 = hqLoc.translate(2,2);
+                loc10 = hqLoc.translate(-2,2);
+                loc11 = hqLoc.translate(2,-2);
+                loc12 = hqLoc.translate(-2,-2);
+                // for the drone, only two locations need be unoccupied
+                // also don't drop the miner in the corner (will get sniped)
+                System.out.println(hasRequestedElevator);
+                if (!hasRequestedElevator) {
+                    if (rc.canSenseLocation(loc1) && rc.canSenseLocation(loc2) && rc.canSenseLocation(loc9)
+                            && (!rc.isLocationOccupied(loc1) && !rc.isLocationOccupied(loc2)
+                            ||  !rc.isLocationOccupied(loc1) && !rc.isLocationOccupied(loc9)
+                            ||  !rc.isLocationOccupied(loc2) && !rc.isLocationOccupied(loc9))
+                            && (currentLoc.isAdjacentTo(loc1) || currentLoc.isAdjacentTo(loc2))) {
+                        MapLocation [] locsToElevate = {loc1, loc2, loc9};
+                        if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
+                        if (currentLoc.isAdjacentTo(loc1)) elevatorLocation = loc1;
+                        if (currentLoc.isAdjacentTo(loc1)) elevatorLocation = loc2;
+                    }
+                    else if (rc.canSenseLocation(loc3) && rc.canSenseLocation(loc4) && rc.canSenseLocation(loc10)
+                            && (!rc.isLocationOccupied(loc3) && !rc.isLocationOccupied(loc4)
+                            ||  !rc.isLocationOccupied(loc3) && !rc.isLocationOccupied(loc10)
+                            ||  !rc.isLocationOccupied(loc4) && !rc.isLocationOccupied(loc10))
+                            && (currentLoc.isAdjacentTo(loc3) || currentLoc.isAdjacentTo(loc4))) {
+                        MapLocation [] locsToElevate = {loc3, loc4, loc10};
+                        if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
+                        if (currentLoc.isAdjacentTo(loc3)) elevatorLocation = loc3;
+                        if (currentLoc.isAdjacentTo(loc4)) elevatorLocation = loc4;
+                    }
+                    else if (rc.canSenseLocation(loc5) && rc.canSenseLocation(loc6) && rc.canSenseLocation(loc11)
+                            && (!rc.isLocationOccupied(loc5) && !rc.isLocationOccupied(loc6)
+                            ||  !rc.isLocationOccupied(loc5) && !rc.isLocationOccupied(loc11)
+                            ||  !rc.isLocationOccupied(loc6) && !rc.isLocationOccupied(loc11))
+                            && (currentLoc.isAdjacentTo(loc5) || currentLoc.isAdjacentTo(loc6))) {
+                        MapLocation [] locsToElevate = {loc5, loc6, loc11};
+                        if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
+                        if (currentLoc.isAdjacentTo(loc5)) elevatorLocation = loc5;
+                        if (currentLoc.isAdjacentTo(loc6)) elevatorLocation = loc6;
+                    }
+                    else if (rc.canSenseLocation(loc7) && rc.canSenseLocation(loc8) && rc.canSenseLocation(loc12)
+                            && (!rc.isLocationOccupied(loc7) && !rc.isLocationOccupied(loc8)
+                            ||  !rc.isLocationOccupied(loc7) && !rc.isLocationOccupied(loc12)
+                            ||  !rc.isLocationOccupied(loc8) && !rc.isLocationOccupied(loc12))
+                            && (currentLoc.isAdjacentTo(loc7) || currentLoc.isAdjacentTo(loc8))) {
+                        MapLocation [] locsToElevate = {loc7, loc8, loc12};
+                        if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
+                        if (currentLoc.isAdjacentTo(loc7)) elevatorLocation = loc7;
+                        if (currentLoc.isAdjacentTo(loc8)) elevatorLocation = loc8;
+                    }
+                    else
+                        orbitHQ();
+                } else {
+                    if (elevatorLocation != null && rc.canSenseLocation(elevatorLocation) && rc.senseElevation(elevatorLocation) >= 20
+                            && !rc.senseFlooding(elevatorLocation))
+                        if (rc.canDropUnit(currentLoc.directionTo(elevatorLocation)))
+                            rc.dropUnit(currentLoc.directionTo(elevatorLocation));
+                }
             }
         }
     }
@@ -146,6 +239,9 @@ public class DeliveryDrone extends Unit {
             tryMove(dirToHQ.rotateLeft().rotateLeft());
             tryMove(dirToHQ.rotateLeft().rotateLeft().rotateLeft());
         }
+        // as a last resort, if no enemies are nearby, move away from HQ
+        if (rc.senseNearbyRobots(8, rc.getTeam().opponent()).length == 0)
+            tryMove(dirToHQ.opposite());
     }
 
 

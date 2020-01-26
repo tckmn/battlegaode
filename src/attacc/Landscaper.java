@@ -19,8 +19,11 @@ public class Landscaper extends Unit {
     public void takeTurn() throws GameActionException {
         super.takeTurn();
 
-        if (!finishedElevator && locsToElevate == null)
+        if (locsToElevate == null) {
             locsToElevate = comms.receiveElevatorRequest();
+            if (locsToElevate != null)
+                finishedElevator = false;
+        }
         else
             performElevation();
 
@@ -35,6 +38,10 @@ public class Landscaper extends Unit {
     }
 
     void performElevation() throws GameActionException {
+        if (locsToElevate == null) {
+            System.out.println("Something bad happened - should never call performElevation if locsToElevate is null");
+            return;
+        }
         boolean nothingAdjacent = true;
         MapLocation currentLoc = rc.getLocation();
         if (hqLoc == null || !currentLoc.isAdjacentTo(hqLoc)) return;
@@ -49,6 +56,8 @@ public class Landscaper extends Unit {
             }
         }
         finishedElevator = finishedElevator || nothingAdjacent;
+        if (finishedElevator)
+            locsToElevate = null;
     }
 
     void runLandscaperAttacc() throws GameActionException {
@@ -289,7 +298,7 @@ public class Landscaper extends Unit {
                     default: 
                         if (rc.canDigDirt(dirToHQ.rotateRight().rotateRight())) 
                             rc.digDirt(dirToHQ.rotateRight().rotateRight());
-                        else 
+                        else if (rc.canDigDirt(dirToHQ.rotateLeft().rotateLeft()))
                             rc.digDirt(dirToHQ.rotateLeft().rotateLeft());
                 }
             }
