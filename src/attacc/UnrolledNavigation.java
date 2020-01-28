@@ -202,6 +202,7 @@ int distances42 = (int)(Math.sqrt(Math.pow(shiftedX + 4, 2) + Math.pow(shiftedY 
 int distances43 = (int)(Math.sqrt(Math.pow(shiftedX + 4, 2) + Math.pow(shiftedY + 3, 2)) * 100 + 0.5);
 int distances44 = (int)(Math.sqrt(Math.pow(shiftedX + 4, 2) + Math.pow(shiftedY + 4, 2)) * 100 + 0.5);
 System.out.println("Bytecodes used in setup and distance initialization: " + (Clock.getBytecodeNum() - initialBytecodeCount));
+System.out.println(distances22);
 if (validEdges000){
 distances01=Math.min(distances01, distances10+1);
 distances10=Math.min(distances01+1, distances10);
@@ -973,7 +974,7 @@ distances34=Math.min(distances33+1, distances34);
 System.out.println("Bytecodes used in setup and iteration: " + (Clock.getBytecodeNum() - initialBytecodeCount));
 int bestX = 2;
 int bestY = 2;
-int minDistance = Integer.MAX_VALUE;
+int minDistance = distances22;
 if (validEdges012 && distances13 < minDistance) {
 bestX = 1;
 bestY = 3;
@@ -1014,7 +1015,9 @@ bestX = 2;
 bestY = 3;
 minDistance=distances23;
 }
-if (minDistance == Integer.MAX_VALUE) return false;
+if (minDistance == distances22) return false;
+System.out.println(distances22);
+System.out.println(minDistance);
 Direction bestDir = myLoc.directionTo(new MapLocation(myLoc.x + (bestX - 2), myLoc.y + (bestY - 2)));
 System.out.println("Total bytecodes used: " + (Clock.getBytecodeNum() - initialBytecodeCount));
 return tryMove(bestDir);

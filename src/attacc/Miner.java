@@ -15,6 +15,7 @@ public class Miner extends Unit {
     boolean hasBuiltNetGun = false;
     boolean hasRequestedElevator = false;
     int designSchoolTurnBuilt = -1;
+    MapLocation nearestEnemyHQPossibility = null;
 
     boolean firstMiner = false;
     boolean secondMiner = false;
@@ -175,7 +176,7 @@ public class Miner extends Unit {
                 if (currentLoc.isAdjacentTo(enemyHQ) && !currentLoc.isAdjacentTo(designSchoolLoc))
                     nav.tryMove(currentLoc.directionTo(annoyingLoc));
                 else
-                    nav.goTo(annoyingLoc);
+                    nav.goTo(annoyingLoc, true);
             }
             else if (!hasBuiltNetGun && 
                 (canSenseEnemy(RobotType.DELIVERY_DRONE) || (rc.getRoundNum() > 13 + designSchoolTurnBuilt))) {
@@ -199,6 +200,8 @@ public class Miner extends Unit {
         // if stuck, build a drone factory and then stop moving
         // NOTE: If you're stuck very close to enemy HQ, don't do this since they'll just shoot drones down
         // Being stuck very close to enemy HQ is probably due to enemy workers who will just move out of the way
+        // This should never happen
+        /*
         if (isStuck) {
             if (enemyHQ == null) {
                 if (!hasBuiltFulfillmentCenter) {
@@ -217,10 +220,11 @@ public class Miner extends Unit {
                 }
                 return;
             }
-            else
-                useBetterNav = true;
         }
+        */
 
+        if (nearestEnemyHQPossibility == null)
+            nearestEnemyHQPossibility = getNearestEnemyHQPossibility();
 
         // if we can see there is nothing at enemyHQPossiblities.get(0), remove from list
         // otherwise go there
@@ -236,13 +240,12 @@ public class Miner extends Unit {
         } else {
             notHere = false;
         }
-        if (notHere)
+        if (notHere) {
             enemyHQPossibilities.remove(nextTarget);
+            nearestEnemyHQPossibility = getNearestEnemyHQPossibility();
+        }
         
-        if (useBetterNav)
-            nav.navTo(getNearestEnemyHQPossibility());
-        else
-            nav.navTo(getNearestEnemyHQPossibility()); // may have changed due to removal
+        nav.goTo(nearestEnemyHQPossibility);
 
         if (nav.tryMove(currentDir))
           System.out.println("I moved!");
@@ -325,8 +328,8 @@ public class Miner extends Unit {
                     }
                 }
             }
-            if (rc.senseElevation(currentLoc) >= 20) {
-                // see if there is an adjacent empty tile not adjacent to HQ with elevation >= 20
+            if (rc.senseElevation(currentLoc) >= ledgeHeight) {
+                // see if there is an adjacent empty tile not adjacent to HQ with elevation >= ledgeHeight
                 boolean hasBuiltDefensiveNetGun = false;
                 MapLocation placeForNetGun = null;
                 for (Direction dir : Util.directions) {
@@ -336,7 +339,7 @@ public class Miner extends Unit {
                         if (robotAtNewLoc != null && robotAtNewLoc.type == RobotType.NET_GUN && robotAtNewLoc.team == rc.getTeam())
                             hasBuiltDefensiveNetGun = true;
                         int newElevation = rc.senseElevation(newLoc);
-                        if (newElevation >= 20 && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
+                        if (newElevation >= ledgeHeight && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
                             placeForNetGun = newLoc;
                     }
                 }
@@ -381,7 +384,7 @@ public class Miner extends Unit {
             nav.goTo(loc);
             // recheck to see if still stuck
             checkIfStuck();
-            if(isStuck) 
+            if(isStuck || nav.useBugNav) 
                 dirsTried[counter] = true;
         } else if (rc.isReady() && rc.getTeamSoup() >= 150) {
             if (designSchool)
@@ -395,15 +398,15 @@ public class Miner extends Unit {
     void checkLoc(int counter) throws GameActionException{
         MapLocation loc = locsToCheck[counter];
         if (!(rc.onTheMap(loc))) {
-            dirsTried[counter] = true;
+            locsTried[counter] = true;
             return;
         }
         if (!rc.getLocation().equals(loc)){
             nav.goTo(loc);
             // recheck to see if still stuck
             checkIfStuck();
-            if(isStuck) 
-                dirsTried[counter] = true;
+            if(isStuck || nav.useBugNav) 
+                locsTried[counter] = true;
         }
     }
 
@@ -480,13 +483,14 @@ public class Miner extends Unit {
 
         if (targetLoc != null){
             nav.goTo(targetLoc);
-            return;
         }
+        checkIfStuck();
 
         // disintegrate if in the way of defensive wall
         // TODO: also make sure there is landscaper nearby
-        if (isStuck && rc.getRoundNum() > emergencyProteccRound-5 && rc.getSoupCarrying() == 0 
-            && (rc.getLocation().isAdjacentTo(hqLoc) || rc.getLocation().distanceSquaredTo(hqLoc) <= 8 && rc.senseElevation(rc.getLocation()) >= 20)) {
+        if (isStuck && rc.getRoundNum() > emergencyProteccRound-5 && (rc.getSoupCarrying() == 0 || rc.getRoundNum() >= 1210)
+                && (rc.getLocation().isAdjacentTo(hqLoc) 
+                || (rc.getLocation().distanceSquaredTo(hqLoc) <= 8 && rc.senseElevation(rc.getLocation()) >= ledgeHeight))) {
             System.out.println("Stuck and in the way -- probably providing negative utility to team");
             // only run away if there are nearby landscapers
             RobotInfo[] nearbyRobots = rc.senseNearbyRobots(2, rc.getTeam());

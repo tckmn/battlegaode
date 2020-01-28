@@ -73,7 +73,7 @@ if (debug): print('System.out.println("Bytecodes used in setup and iteration: " 
 
 print('int bestX = '+str(radius)+';')
 print('int bestY = '+str(radius)+';')
-print('int minDistance = Integer.MAX_VALUE;')
+print('int minDistance = distances' + str(radius) + str(radius) +';')
 
 print('if (validEdges0'+str(radius-1)+str(radius)+' && distances'+str(radius-1)+str(radius+1)+' < minDistance) {')
 print('bestX = '+str(radius-1)+';')
@@ -119,7 +119,7 @@ print('bestY = '+str(radius+1)+';')
 print('minDistance=distances'+str(radius)+str(radius+1)+';')
 print('}')
 
-print('if (minDistance == Integer.MAX_VALUE) return false;')
+print('if (minDistance == distances' + str(radius) + str(radius) + ') return false;')
 print('Direction bestDir = myLoc.directionTo(new MapLocation(myLoc.x + (bestX - '+str(radius)+'), myLoc.y + (bestY - '+str(radius)+')));')
 if(debug): print('System.out.println("Total bytecodes used: " + (Clock.getBytecodeNum() - initialBytecodeCount));')
 print('return tryMove(bestDir);')

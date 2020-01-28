@@ -2,7 +2,7 @@ package attacc;
 import battlecode.common.*;
 
 public class FulfillmentCenter extends Building {
-    boolean hasBuiltDrone = false;
+    int dronesBuilt = 0;
     int soupPreviousTurn = 0;
 
     public FulfillmentCenter(RobotController r) {
@@ -14,10 +14,11 @@ public class FulfillmentCenter extends Building {
 
         // in order to build defensive drone, reset hasBuiltDrone on proteccRound
         if (rc.getRoundNum() == proteccRound)
-            hasBuiltDrone = false;
+            dronesBuilt = 0;
         
         // water reaches height 5 on turn 1210
-        if (hasBuiltDrone && (rc.getRoundNum() <= 1210 || soupPreviousTurn <= 250)) {
+        // build 2 defensive drones
+        if (dronesBuilt >= 2 && (rc.getRoundNum() <= 1210 || soupPreviousTurn <= 250)) {
             soupPreviousTurn = rc.getTeamSoup();
             return;
         }
@@ -33,16 +34,16 @@ public class FulfillmentCenter extends Building {
                     if (rc.canSenseLocation(rightLoc) && (rc.senseFlooding(rightLoc) 
                             || Math.abs(rc.senseElevation(rightLoc) - rc.senseElevation(rc.getLocation().add(dirToMiner))) > 3)
                             && tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateRight()))
-                        hasBuiltDrone = true;
+                        dronesBuilt ++;
                     if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateLeft()))
-                        hasBuiltDrone = true;
+                        dronesBuilt ++;
                     if (tryBuild(RobotType.DELIVERY_DRONE, dirToMiner.rotateRight()))
-                        hasBuiltDrone = true;
+                        dronesBuilt ++;
                 }
         } else {
             for (Direction dir : Util.directions)
                 if (tryBuild(RobotType.DELIVERY_DRONE, dir))
-                    hasBuiltDrone = true;
+                    dronesBuilt ++;
         }
 
         // if there are no miners nearby (probably if we're building defensive drone), build in direction of our HQ
@@ -51,7 +52,7 @@ public class FulfillmentCenter extends Building {
             Direction dirToHQ = currentLoc.directionTo(hqLoc);
             if (tryBuild(RobotType.DELIVERY_DRONE, dirToHQ) || tryBuild(RobotType.DELIVERY_DRONE, dirToHQ.rotateLeft())
                     || tryBuild(RobotType.DELIVERY_DRONE, dirToHQ.rotateRight()))
-                hasBuiltDrone = true;
+                dronesBuilt ++;
         }
         soupPreviousTurn = rc.getTeamSoup();
     }

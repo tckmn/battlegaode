@@ -25,7 +25,8 @@ public class DesignSchool extends Building {
 
         // defensive design school should lose race conditions by delaying everything one turn
         if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16 && soupPreviousTurn < 150
-            || (landscapersBuilt >= 8 && soupPreviousTurn < 250)) {
+            || (landscapersBuilt >= 8 && soupPreviousTurn < 250)
+            || (landscapersBuilt >= 12 && soupPreviousTurn < 1000)) {
             soupPreviousTurn = rc.getTeamSoup();
             // if you see at least one net gun already, then you can build more landscapers as long as soupPreviousTurn >= 150
             RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
@@ -34,7 +35,7 @@ public class DesignSchool extends Building {
                 if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam())
                     nearbyNetGun = true;
             }
-            if (!nearbyNetGun || soupPreviousTurn < 150)
+            if ((!nearbyNetGun || soupPreviousTurn < 150) || (landscapersBuilt >= 12 && soupPreviousTurn < 1000))
                 return;
         }
 

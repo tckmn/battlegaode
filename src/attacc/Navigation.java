@@ -4,6 +4,13 @@ import battlecode.common.*;
 public class Navigation {
     RobotController rc;
 
+    // bug nav variables
+    boolean useBugNav = false;
+    boolean turnRight = true;
+    int minDistanceToTarget = Integer.MAX_VALUE;
+    Direction lastDirMoved = null;
+    MapLocation bugNavTarget = null;
+
     // state related only to navigation should go here
 
     public Navigation(RobotController r) {
@@ -69,10 +76,41 @@ public class Navigation {
         return false;
     }
 
-    // navigate towards a particular location
     boolean goTo(MapLocation destination) throws GameActionException {
-        if (Clock.getBytecodesLeft() > 7000 && rc.getType() != RobotType.DELIVERY_DRONE) // if we have time, do more intelligent navigation
-            return navTo(destination);
+        return goTo(destination, false);
+    }
+
+    // navigate towards a particular location
+    boolean goTo(MapLocation destination, boolean avoidBugNav) throws GameActionException {
+        if (!(rc.isReady()) || destination == null) return false;
+        if (useBugNav && !avoidBugNav) {
+            return bugNavTo(destination);
+        }
+        else if (Clock.getBytecodesLeft() > 7000 && rc.getType() != RobotType.DELIVERY_DRONE) { // if we have time, do more intelligent navigation 
+            boolean success = navTo(destination);
+            if (!success) {
+                System.out.println("Intelligent navigation failed; switching to bug nav");
+                useBugNav = true;
+                MapLocation currentLoc = rc.getLocation();
+                minDistanceToTarget = Math.min(minDistanceToTarget, currentLoc.distanceSquaredTo(destination));
+                // only change direction if bugNavTarget changes
+                if (bugNavTarget == null || !bugNavTarget.equals(destination)) {
+                    minDistanceToTarget = currentLoc.distanceSquaredTo(destination);
+                }
+                MapLocation mapCenter = new MapLocation(rc.getMapWidth()/2, rc.getMapHeight()/2);
+                lastDirMoved = currentLoc.directionTo(mapCenter);
+                double angleToCenter = Math.atan2(mapCenter.y - currentLoc.y, mapCenter.x - currentLoc.x);
+                double angleToTarget = Math.atan2(destination.y - currentLoc.y, destination.x - currentLoc.x);
+                double difference = (angleToTarget - angleToCenter + 2 * Math.PI) % (2 * Math.PI);
+                turnRight = (difference > Math.PI);
+                bugNavTarget = destination;
+                System.out.println(minDistanceToTarget);
+            
+                // we want bug nav toward the center
+                // this means that we should turn right if, when facing the center, the destination is on the right
+            }
+            return success || bugNavTo(destination);
+        }
         else {
             System.out.println("Trying to go to " + destination);
             MapLocation myLoc = rc.getLocation();
@@ -88,6 +126,45 @@ public class Navigation {
             else
                 return goTo(dir, false);
         }
+    }
+
+    boolean bugNavTo(MapLocation destination) throws GameActionException {
+        // if target has changed, reset bug nav
+        if (bugNavTarget == null || !(destination.equals(bugNavTarget))) {
+            useBugNav = false;
+            return false;
+        }
+        Direction newDir;
+        int counter = 0; // make sure we don't try to move more than 8 times
+        System.out.println(lastDirMoved);
+        if (turnRight) {
+            System.out.println("Turning right");
+            newDir = lastDirMoved.rotateRight().rotateRight();
+            System.out.println(newDir);
+            // now rotate left until there is a valid legal move
+            while (!tryMove(newDir)) {
+                System.out.println(newDir);
+                newDir = newDir.rotateLeft();
+                if (counter ++ >= 8)
+                    return false;
+            }
+            lastDirMoved = newDir;
+        } else {
+            newDir = lastDirMoved.rotateLeft().rotateLeft();
+            System.out.println(newDir);
+            // now rotate left until there is a valid legal move
+            while (!tryMove(newDir)) {
+                System.out.println(newDir);
+                newDir = newDir.rotateRight();
+                if (counter ++ >= 8)
+                    return false;
+            }
+            lastDirMoved = newDir;
+        }
+        // halt bug nav if closer than ever before
+        if (rc.getLocation().distanceSquaredTo(destination) < minDistanceToTarget)
+            useBugNav = false;
+        return true;
     }
 
     // more intelligent navigation (for non-drones)
@@ -180,7 +257,7 @@ public class Navigation {
         // now find minimum value among neighbors adjacent to self (with a valid edge)
         int bestX = radius;
         int bestY = radius;
-        int minDistance = Integer.MAX_VALUE;
+        int minDistance = distances[radius][radius];
         // Unfortunately, due to how the edges are stored, we have to try the adjacent tiles manually
         if (validEdges0[radius-1][radius] && distances[radius-1][radius+1] < minDistance) {
             bestX = radius-1;
@@ -234,7 +311,7 @@ public class Navigation {
             System.out.println(bestX + " " + bestY + " " + minDistance);
         }
 
-        if (minDistance == Integer.MAX_VALUE)
+        if (minDistance == distances[radius][radius])
             return false;
 
         System.out.println("Best location found (relative to current position): (" + (bestX - radius) + "," + (bestY - radius) + ")");

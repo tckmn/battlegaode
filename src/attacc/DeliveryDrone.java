@@ -179,17 +179,23 @@ public class DeliveryDrone extends Unit {
                             && (!rc.isLocationOccupied(loc1) && !rc.isLocationOccupied(loc2)
                             ||  !rc.isLocationOccupied(loc1) && !rc.isLocationOccupied(loc9)
                             ||  !rc.isLocationOccupied(loc2) && !rc.isLocationOccupied(loc9))
+                            && rc.canSenseLocation(hqLoc.translate(1,1))
+                            && rc.senseRobotAtLocation(hqLoc.translate(1,1)) != null
+                            && rc.senseRobotAtLocation(hqLoc.translate(1,1)).type == RobotType.LANDSCAPER
                             && (currentLoc.isAdjacentTo(loc1) || currentLoc.isAdjacentTo(loc2))) {
                         MapLocation [] locsToElevate = {loc1, loc2, loc9};
                         if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
                         if (currentLoc.isAdjacentTo(loc1)) elevatorLocation = loc1;
-                        if (currentLoc.isAdjacentTo(loc1)) elevatorLocation = loc2;
+                        if (currentLoc.isAdjacentTo(loc2)) elevatorLocation = loc2;
                     }
                     else if (rc.canSenseLocation(loc3) && rc.canSenseLocation(loc4) && rc.canSenseLocation(loc10)
                             && (!rc.isLocationOccupied(loc3) && !rc.isLocationOccupied(loc4)
                             ||  !rc.isLocationOccupied(loc3) && !rc.isLocationOccupied(loc10)
                             ||  !rc.isLocationOccupied(loc4) && !rc.isLocationOccupied(loc10))
-                            && (currentLoc.isAdjacentTo(loc3) || currentLoc.isAdjacentTo(loc4))) {
+                            && (currentLoc.isAdjacentTo(loc3) || currentLoc.isAdjacentTo(loc4))
+                            && rc.canSenseLocation(hqLoc.translate(-1,1))
+                            && rc.senseRobotAtLocation(hqLoc.translate(-1,1)) != null
+                            && rc.senseRobotAtLocation(hqLoc.translate(-1,1)).type == RobotType.LANDSCAPER) {
                         MapLocation [] locsToElevate = {loc3, loc4, loc10};
                         if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
                         if (currentLoc.isAdjacentTo(loc3)) elevatorLocation = loc3;
@@ -199,7 +205,10 @@ public class DeliveryDrone extends Unit {
                             && (!rc.isLocationOccupied(loc5) && !rc.isLocationOccupied(loc6)
                             ||  !rc.isLocationOccupied(loc5) && !rc.isLocationOccupied(loc11)
                             ||  !rc.isLocationOccupied(loc6) && !rc.isLocationOccupied(loc11))
-                            && (currentLoc.isAdjacentTo(loc5) || currentLoc.isAdjacentTo(loc6))) {
+                            && (currentLoc.isAdjacentTo(loc5) || currentLoc.isAdjacentTo(loc6))
+                            && rc.canSenseLocation(hqLoc.translate(1,-1))
+                            && rc.senseRobotAtLocation(hqLoc.translate(1,-1)) != null
+                            && rc.senseRobotAtLocation(hqLoc.translate(1,-1)).type == RobotType.LANDSCAPER) {
                         MapLocation [] locsToElevate = {loc5, loc6, loc11};
                         if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
                         if (currentLoc.isAdjacentTo(loc5)) elevatorLocation = loc5;
@@ -209,11 +218,15 @@ public class DeliveryDrone extends Unit {
                             && (!rc.isLocationOccupied(loc7) && !rc.isLocationOccupied(loc8)
                             ||  !rc.isLocationOccupied(loc7) && !rc.isLocationOccupied(loc12)
                             ||  !rc.isLocationOccupied(loc8) && !rc.isLocationOccupied(loc12))
+                            && rc.canSenseLocation(hqLoc.translate(-1,-1))
+                            && rc.senseRobotAtLocation(hqLoc.translate(-1,-1)) != null
+                            && rc.senseRobotAtLocation(hqLoc.translate(-1,-1)).type == RobotType.LANDSCAPER
                             && (currentLoc.isAdjacentTo(loc7) || currentLoc.isAdjacentTo(loc8))) {
                         MapLocation [] locsToElevate = {loc7, loc8, loc12};
                         if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
                         if (currentLoc.isAdjacentTo(loc7)) elevatorLocation = loc7;
                         if (currentLoc.isAdjacentTo(loc8)) elevatorLocation = loc8;
+
                     }
                     else
                         orbitHQ();

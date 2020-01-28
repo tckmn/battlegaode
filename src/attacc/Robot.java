@@ -14,6 +14,8 @@ public class Robot {
     int emergencyProteccRound = 400; // needs to be before first sea level rise
     int earlyProtecc = 12; // extra soup needed to start building wall early (units of soup/early round)
 
+    int ledgeHeight = 25;
+
     MapLocation enemyHQ = null;
     Direction currentDir = Util.randomDirection();
 

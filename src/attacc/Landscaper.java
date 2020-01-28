@@ -89,7 +89,7 @@ public class Landscaper extends Unit {
         if (hqLoc == null || !currentLoc.isAdjacentTo(hqLoc)) return;
         for (MapLocation loc : locsToElevate) {
             if (loc.isAdjacentTo(currentLoc)) {
-                if (rc.senseElevation(loc) < 20) {
+                if (rc.senseElevation(loc) < ledgeHeight) {
                     nothingAdjacent = false;
                     Direction dir = currentLoc.directionTo(loc);
                     if (rc.canDepositDirt(dir))
@@ -115,7 +115,8 @@ public class Landscaper extends Unit {
 
 
         // if not adjacent to enemy HQ, try to go there and otherwise dig dirt (don't deposit except on enemy HQ)
-        if (enemyHQ == null || !rc.getLocation().isAdjacentTo(enemyHQ)) {
+        if (enemyHQ == null) runLandscaperProtecc();
+        else if (!rc.getLocation().isAdjacentTo(enemyHQ)) {
             buryEnemyBuilding();
             nav.goTo(enemyHQ);
             if (rc.isReady() && currentDir != null) rc.digDirt(currentDir.opposite());

@@ -30,6 +30,19 @@ public class Shooter extends Building {
             }
         }
 
+        if (hqLoc != null) {
+            for (RobotInfo e : enemiesInRange) {
+                for (int n = 1; n <= 4; n ++) {
+                    if (e.type == RobotType.DELIVERY_DRONE && hqLoc.distanceSquaredTo(e.location) < n*n) {
+                        if (rc.canShootUnit(e.ID)){
+                            rc.shootUnit(e.ID);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
         for (RobotInfo e : enemiesInRange) {
             for (int n = 1; n <= 4; n ++) {
                 if (e.type == RobotType.DELIVERY_DRONE && currentLoc.distanceSquaredTo(e.location) < n*n) {
