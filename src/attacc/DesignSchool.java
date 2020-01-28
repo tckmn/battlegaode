@@ -35,7 +35,7 @@ public class DesignSchool extends Building {
                 if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam())
                     nearbyNetGun = true;
             }
-            if ((!nearbyNetGun || soupPreviousTurn < 150) || (landscapersBuilt >= 12 && soupPreviousTurn < 1000))
+            if ((!nearbyNetGun || soupPreviousTurn <= 150) || (landscapersBuilt >= 12 && soupPreviousTurn < 1000))
                 return;
         }
 

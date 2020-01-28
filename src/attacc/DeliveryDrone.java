@@ -182,7 +182,8 @@ public class DeliveryDrone extends Unit {
                             && rc.canSenseLocation(hqLoc.translate(1,1))
                             && rc.senseRobotAtLocation(hqLoc.translate(1,1)) != null
                             && rc.senseRobotAtLocation(hqLoc.translate(1,1)).type == RobotType.LANDSCAPER
-                            && (currentLoc.isAdjacentTo(loc1) || currentLoc.isAdjacentTo(loc2))) {
+                            && (currentLoc.isAdjacentTo(loc1) && !rc.isLocationOccupied(loc1)
+                             || currentLoc.isAdjacentTo(loc2) && !rc.isLocationOccupied(loc2))) {
                         MapLocation [] locsToElevate = {loc1, loc2, loc9};
                         if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
                         if (currentLoc.isAdjacentTo(loc1)) elevatorLocation = loc1;
@@ -192,7 +193,8 @@ public class DeliveryDrone extends Unit {
                             && (!rc.isLocationOccupied(loc3) && !rc.isLocationOccupied(loc4)
                             ||  !rc.isLocationOccupied(loc3) && !rc.isLocationOccupied(loc10)
                             ||  !rc.isLocationOccupied(loc4) && !rc.isLocationOccupied(loc10))
-                            && (currentLoc.isAdjacentTo(loc3) || currentLoc.isAdjacentTo(loc4))
+                            && (currentLoc.isAdjacentTo(loc3) && !rc.isLocationOccupied(loc3)
+                             || currentLoc.isAdjacentTo(loc4) && !rc.isLocationOccupied(loc4))
                             && rc.canSenseLocation(hqLoc.translate(-1,1))
                             && rc.senseRobotAtLocation(hqLoc.translate(-1,1)) != null
                             && rc.senseRobotAtLocation(hqLoc.translate(-1,1)).type == RobotType.LANDSCAPER) {
@@ -205,7 +207,8 @@ public class DeliveryDrone extends Unit {
                             && (!rc.isLocationOccupied(loc5) && !rc.isLocationOccupied(loc6)
                             ||  !rc.isLocationOccupied(loc5) && !rc.isLocationOccupied(loc11)
                             ||  !rc.isLocationOccupied(loc6) && !rc.isLocationOccupied(loc11))
-                            && (currentLoc.isAdjacentTo(loc5) || currentLoc.isAdjacentTo(loc6))
+                            && (currentLoc.isAdjacentTo(loc5) && !rc.isLocationOccupied(loc5)
+                             || currentLoc.isAdjacentTo(loc6) && !rc.isLocationOccupied(loc6))
                             && rc.canSenseLocation(hqLoc.translate(1,-1))
                             && rc.senseRobotAtLocation(hqLoc.translate(1,-1)) != null
                             && rc.senseRobotAtLocation(hqLoc.translate(1,-1)).type == RobotType.LANDSCAPER) {
@@ -221,7 +224,8 @@ public class DeliveryDrone extends Unit {
                             && rc.canSenseLocation(hqLoc.translate(-1,-1))
                             && rc.senseRobotAtLocation(hqLoc.translate(-1,-1)) != null
                             && rc.senseRobotAtLocation(hqLoc.translate(-1,-1)).type == RobotType.LANDSCAPER
-                            && (currentLoc.isAdjacentTo(loc7) || currentLoc.isAdjacentTo(loc8))) {
+                            && (currentLoc.isAdjacentTo(loc7) && !rc.isLocationOccupied(loc7)
+                             || currentLoc.isAdjacentTo(loc8) && !rc.isLocationOccupied(loc8))) {
                         MapLocation [] locsToElevate = {loc7, loc8, loc12};
                         if (comms.requestElevator(locsToElevate)) hasRequestedElevator = true;
                         if (currentLoc.isAdjacentTo(loc7)) elevatorLocation = loc7;
