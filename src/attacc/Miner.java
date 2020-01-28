@@ -289,6 +289,8 @@ public class Miner extends Unit {
 
     //pseudo code for new minerProtecc method  
     void minerProtecc() throws GameActionException {
+        if (rc.getRoundNum() >= 2000 && !(rc.getLocation().isAdjacentTo(hqLoc)))
+            return; // don't build things after turn 2000; they just get flooded very soon
         if (!hasBuiltDesignSchool) {
             System.out.println("In protection mode; trying to build defensive design school");
             for(int counter = 0; counter < 4; counter++)
