@@ -232,8 +232,14 @@ public class DeliveryDrone extends Unit {
                         if (currentLoc.isAdjacentTo(loc8)) elevatorLocation = loc8;
 
                     }
-                    else
+                    else {
                         orbitHQ();
+                        
+                        // reverse orbital direction if needed
+                        checkIfStuck();
+                        if (isStuck)
+                            spinUp = !spinUp;
+                    }
                 } else {
                     if (elevatorLocation != null && rc.canSenseLocation(elevatorLocation) && rc.senseElevation(elevatorLocation) >= 20
                             && !rc.senseFlooding(elevatorLocation))

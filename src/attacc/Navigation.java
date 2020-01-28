@@ -134,6 +134,17 @@ public class Navigation {
             useBugNav = false;
             return false;
         }
+        // if there are no walls (ie robot can move in all directions), don't use bug nav
+        // this is to avoid problems where we get stuck and then keep going in circles
+        boolean noWalls = true;
+        MapLocation currentLoc = rc.getLocation();
+        for (Direction dir : Util.directions)
+            if (!(rc.canMove(dir)) || rc.senseFlooding(currentLoc.add(dir)))
+                noWalls = false;
+        if (noWalls) {
+            useBugNav = false;
+            return false;
+        }
         Direction newDir;
         int counter = 0; // make sure we don't try to move more than 8 times
         System.out.println(lastDirMoved);
