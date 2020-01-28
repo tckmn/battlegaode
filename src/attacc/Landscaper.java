@@ -230,6 +230,8 @@ public class Landscaper extends Unit {
                     else if (rc.canDigDirt(dirToHQ.rotateLeft().rotateLeft())) 
                         rc.digDirt(dirToHQ.rotateLeft().rotateLeft());
             }
+        } else if (wallLocations.size() == 0) {
+            runLandscaperEmergencyProtecc(); // if not adjacent to HQ but all spots taken, just dump dirt onto wall
         }
 
     }
