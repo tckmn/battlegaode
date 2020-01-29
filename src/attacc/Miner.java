@@ -333,16 +333,22 @@ public class Miner extends Unit {
         } else {
             // start building defensive net guns
             MapLocation currentLoc = rc.getLocation();
+            int counter = 0;
             if (currentLoc.distanceSquaredTo(hqLoc) != 5) {
-                for (int counter = 0; counter < 8; counter ++) {
+                for ( ; counter < 8; counter ++) {
                     if (!locsTried[counter]) {
                         checkLoc(counter);
                         break;
                     }
                 }
             }
+            if (counter == 8 && locsTried[7]) {
+                boolean [] temp = {false, false, false, false, false, false, false, false}; // reset to start over
+                locsTried = temp;
+            }
             if (rc.senseElevation(currentLoc) >= ledgeHeight) {
                 // see if there is an adjacent empty tile not adjacent to HQ with elevation >= ledgeHeight
+                // ideally try to build in one of the corners of HQ (more room for landscapers)
                 boolean hasBuiltDefensiveNetGun = false;
                 MapLocation placeForNetGun = null;
                 for (Direction dir : Util.directions) {
@@ -353,7 +359,8 @@ public class Miner extends Unit {
                             hasBuiltDefensiveNetGun = true;
                         int newElevation = rc.senseElevation(newLoc);
                         if (newElevation >= ledgeHeight && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
-                            placeForNetGun = newLoc;
+                            if (placeForNetGun == null || newLoc.distanceSquaredTo(hqLoc) == 8)
+                                placeForNetGun = newLoc;
                     }
                 }
                 System.out.println("Trying to build things at location " + placeForNetGun);
@@ -365,7 +372,7 @@ public class Miner extends Unit {
                         tryBuild(RobotType.DESIGN_SCHOOL, currentLoc.directionTo(placeForNetGun));
                     }
                 }
-            } else if (!hasRequestedElevator) {
+            } else if (currentLoc.distanceSquaredTo(hqLoc) == 5 && !hasRequestedElevator) {
                 MapLocation [] locsToElevate = {currentLoc, new MapLocation(-10,-10), new MapLocation(-10,-10)};
                 int elevatorCounter = 1;
                 boolean landscaperInPlace = false;

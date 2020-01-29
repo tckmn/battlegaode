@@ -86,14 +86,31 @@ public class Landscaper extends Unit {
         }
         boolean nothingAdjacent = true;
         MapLocation currentLoc = rc.getLocation();
+        int minHeight = Integer.MAX_VALUE;
         if (hqLoc == null || !currentLoc.isAdjacentTo(hqLoc)) return;
         for (MapLocation loc : locsToElevate) {
             if (loc.isAdjacentTo(currentLoc)) {
-                if (rc.senseElevation(loc) < ledgeHeight) {
+                int height = rc.senseElevation(loc);
+                if (height < ledgeHeight) {
                     nothingAdjacent = false;
                     Direction dir = currentLoc.directionTo(loc);
                     if (rc.canDepositDirt(dir))
                         rc.depositDirt(dir);
+                }
+                if (height < minHeight)
+                    minHeight = height;
+            }
+        }
+        minHeight = Math.max(minHeight, ledgeHeight);
+        // now see if there are any locations that are too tall
+        for (MapLocation loc : locsToElevate) {
+            if (loc.isAdjacentTo(currentLoc)) {
+                int height = rc.senseElevation(loc);
+                if (height > minHeight + 3) {
+                    nothingAdjacent = false;
+                    Direction dir = currentLoc.directionTo(loc);
+                    if (rc.canDigDirt(dir))
+                        rc.digDirt(dir);
                 }
             }
         }
@@ -176,8 +193,10 @@ public class Landscaper extends Unit {
             designSchoolToHQ.opposite().rotateLeft(),
             designSchoolToHQ.opposite()
         };
-        for (Direction dir : wallDirs)
-            wallLocations.add(hqLoc.add(dir));
+        for (Direction dir : wallDirs) {
+            MapLocation newLoc = hqLoc.add(dir);
+            if (rc.onTheMap(newLoc)) wallLocations.add(newLoc);
+        }
         
         // now try to see if any are occupied by landscapers already
         for (int counter = wallLocations.size() - 1; counter >= 0; counter --){
@@ -264,8 +283,10 @@ public class Landscaper extends Unit {
 
         // if a distance of >= 8 from HQ, get closer
         // in particular, don't stand in corners since these get sniped by drones
-        if (currentLoc.distanceSquaredTo(hqLoc) >= 8)
+        if (currentLoc.distanceSquaredTo(hqLoc) >= 8) {
             nav.goTo(hqLoc);
+            return;
+        }
 
 
         buryEnemyBuilding();

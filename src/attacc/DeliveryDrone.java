@@ -94,6 +94,10 @@ public class DeliveryDrone extends Unit {
                 for (RobotInfo robot : adjacentFriends)
                     if (robot.type == RobotType.LANDSCAPER && !robot.location.isAdjacentTo(hqLoc) && rc.canPickUpUnit(robot.ID))
                         rc.pickUpUnit(robot.ID);
+            } else {
+                for (RobotInfo robot : adjacentFriends)
+                    if (robot.type == RobotType.LANDSCAPER && robot.location.distanceSquaredTo(hqLoc) > 8 && rc.canPickUpUnit(robot.ID))
+                        rc.pickUpUnit(robot.ID);
             }
 
             // if there is a miner who has done its job, pick it up
@@ -146,6 +150,14 @@ public class DeliveryDrone extends Unit {
                 } else
                     nav.goTo(new MapLocation((int)(rc.getMapWidth() * Math.random()), (int)(rc.getMapHeight() * Math.random())));
             } else if (rc.senseRobot(me.heldUnitID).type == RobotType.LANDSCAPER) {
+                // if wall has missing places, put a landscaper on one of them (if possible)
+                int landscapersMissing = 0;
+                for (Direction dir : Util.directions) {
+                    MapLocation loc = hqLoc.add(dir);
+                    if (rc.canSenseLocation(loc) && !rc.isLocationOccupied(loc))
+                        landscapersMissing ++;
+                }
+
                 System.out.println("Carrying friendly landscaper to place on wall");
                 // find missing wall location to put unit on
                 for (Direction dir : Util.directions) {
@@ -153,10 +165,27 @@ public class DeliveryDrone extends Unit {
                     System.out.println(loc);
                     if (rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && loc.isAdjacentTo(hqLoc) && rc.canDropUnit(dir))
                         rc.dropUnit(dir);
+                    if (landscapersMissing == 0 && rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && rc.canDropUnit(dir)
+                            && loc.distanceSquaredTo(hqLoc) <= 5 && rc.senseElevation(loc) >= ledgeHeight) {
+                        boolean nearbyNetGun = false;
+                        for (RobotInfo bot : rc.senseNearbyRobots(loc, 2, rc.getTeam())) {
+                            if (bot.type == RobotType.NET_GUN) nearbyNetGun = true;
+                        }
+                        if (nearbyNetGun || rc.getRoundNum() > 2000) rc.dropUnit(dir);
+                    }
                 }
                 if (rc.isCurrentlyHoldingUnit()) // didn't succeed in dropping it
                     orbitHQ();
             } else if (rc.senseRobot(me.heldUnitID).type == RobotType.MINER) {
+                // if turn count is post-flooding (at height 25) just orbit HQ and maybe drop on wall if there is an empty place
+                if (rc.getRoundNum() >= 2143) {
+                    for (Direction dir : Util.directions) {
+                        MapLocation loc = currentLoc.add(dir);
+                        if (rc.canSenseLocation(loc) && loc.isAdjacentTo(hqLoc) && !(rc.isLocationOccupied(loc)) && rc.canDropUnit(dir))
+                            rc.dropUnit(dir);
+                    }
+                    orbitHQ();
+                }
                 // go to a place where the miner will have its own corner
                 MapLocation loc1, loc2, loc3, loc4, loc5, loc6, loc7, loc8, loc9, loc10, loc11, loc12;
                 loc1 = hqLoc.translate(1,2);
@@ -253,6 +282,12 @@ public class DeliveryDrone extends Unit {
     public void orbitHQ() throws GameActionException {
         MapLocation currentLoc = rc.getLocation();
         Direction dirToHQ = currentLoc.directionTo(hqLoc);
+        // if the location to move to is off the map, turn around
+        if (spinUp && !rc.onTheMap(currentLoc.add(dirToHQ.rotateRight())))
+            spinUp = false;
+        if (!spinUp && !rc.onTheMap(currentLoc.add(dirToHQ.rotateLeft())))
+            spinUp = true;
+        
         if (spinUp) {
             tryMove(dirToHQ.rotateRight());
             tryMove(dirToHQ.rotateRight().rotateRight());

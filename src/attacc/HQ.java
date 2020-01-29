@@ -68,10 +68,6 @@ public class HQ extends Shooter {
             return;
 
         boolean hasSabotaged = false;
-        System.out.println(sabotagedPreviousTurn);
-        System.out.println(blockchainSabotages);
-        System.out.println(sabotagedFromNearbyEnemy);
-        System.out.println(rc.senseNearbyRobots(-1, rc.getTeam().opponent()).length);
 
         if (sabotagedPreviousTurn) {
             // don't sabotage again this turn
@@ -82,7 +78,6 @@ public class HQ extends Shooter {
                 hasSabotaged = true;
         }
         else if (!sabotagedFromNearbyEnemy && rc.senseNearbyRobots(-1, rc.getTeam().opponent()).length != 0) {
-            System.out.println("See nearby enemy - should try to sabotage blockchain");
             if (comms.sabotageBlockchain()) {
                 sabotagedFromNearbyEnemy = true;
                 hasSabotaged = true;
