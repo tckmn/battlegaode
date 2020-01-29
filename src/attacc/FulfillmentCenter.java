@@ -19,7 +19,7 @@ public class FulfillmentCenter extends Building {
         // water reaches height 5 on turn 1210
         // build 2 defensive drones
         // after turn 2000, nothing is worth building except drones and maybe landscapers
-        if (dronesBuilt >= 2 && ((rc.getRoundNum() <= 1210 && soupPreviousTurn <= 500) || soupPreviousTurn <= 250) && rc.getRoundNum() < 2000) {
+        if (dronesBuilt >= 2 && ((rc.getRoundNum() <= 1210 && soupPreviousTurn <= 300) || soupPreviousTurn <= 250) && rc.getRoundNum() < 2000) {
             soupPreviousTurn = rc.getTeamSoup();
             return;
         }

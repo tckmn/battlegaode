@@ -88,7 +88,7 @@ public class Navigation {
         }
         else if (Clock.getBytecodesLeft() > 7000 && rc.getType() != RobotType.DELIVERY_DRONE) { // if we have time, do more intelligent navigation 
             boolean success = navTo(destination);
-            if (!success) {
+            if (!success && !avoidBugNav) {
                 System.out.println("Intelligent navigation failed; switching to bug nav");
                 useBugNav = true;
                 MapLocation currentLoc = rc.getLocation();
@@ -114,7 +114,10 @@ public class Navigation {
                 // we want bug nav toward the center
                 // this means that we should turn right if, when facing the center, the destination is on the right
             }
-            return success || bugNavTo(destination);
+            if (avoidBugNav)
+                return success;
+            else
+                return success || bugNavTo(destination);
         }
         else {
             System.out.println("Trying to go to " + destination);

@@ -95,9 +95,52 @@ public class DeliveryDrone extends Unit {
                     if (robot.type == RobotType.LANDSCAPER && !robot.location.isAdjacentTo(hqLoc) && rc.canPickUpUnit(robot.ID))
                         rc.pickUpUnit(robot.ID);
             } else {
-                for (RobotInfo robot : adjacentFriends)
+                for (RobotInfo robot : adjacentFriends) {
                     if (robot.type == RobotType.LANDSCAPER && robot.location.distanceSquaredTo(hqLoc) > 8 && rc.canPickUpUnit(robot.ID))
                         rc.pickUpUnit(robot.ID);
+                    // if there is a lanscaper a distance 5 from HQ and it is next to a design school
+                    // and if there is also another distance 5 tile that is adjacent to a net gun (or vaporator), 
+                    // pick up the landscaper (to move it there)
+                    if (robot.type == RobotType.LANDSCAPER && robot.location.distanceSquaredTo(hqLoc) > 2
+                            && rc.canSenseLocation(robot.location) && rc.senseElevation(robot.location) <= ledgeHeight + 3) {
+                        boolean nearbyDesignSchool = false;
+                        for (Direction dir : Util.directions) {
+                            MapLocation newLoc = robot.location.add(dir);
+                            if (rc.canSenseLocation(newLoc)) {
+                                RobotInfo newRobot = rc.senseRobotAtLocation(newLoc);
+                                if (newRobot != null && newRobot.type == RobotType.DESIGN_SCHOOL)
+                                    nearbyDesignSchool = true;
+                            }
+                        }
+                        if (nearbyDesignSchool) {
+                            // now see if there is an unoccupied distance 5 tile from HQ adjacent to net gun or vaporator
+                            boolean adjacentNetGun = false;
+                            MapLocation [] possibleLocs = {hqLoc.translate(1,2),
+                                    hqLoc.translate(2,1),
+                                    hqLoc.translate(-1,2),
+                                    hqLoc.translate(-2,1),
+                                    hqLoc.translate(1,-2),
+                                    hqLoc.translate(2,-1),
+                                    hqLoc.translate(-1,-2),
+                                    hqLoc.translate(-2,-1)};
+                            for (MapLocation loc : possibleLocs) {
+                                if (rc.canSenseLocation(loc) && !(rc.isLocationOccupied(loc))) {
+                                    for (Direction dir : Util.directions) {
+                                        MapLocation newLoc = loc.add(dir);
+                                        if (rc.canSenseLocation(newLoc)) {
+                                            RobotInfo newRobot = rc.senseRobotAtLocation(newLoc);
+                                            if (newRobot != null 
+                                                    && (newRobot.type == RobotType.NET_GUN || newRobot.type == RobotType.VAPORATOR))
+                                                adjacentNetGun = true;
+                                        }
+                                    }
+                                }
+                            }
+                            if (adjacentNetGun && rc.canPickUpUnit(robot.ID))
+                                rc.pickUpUnit(robot.ID);
+                        }
+                    }
+                }
             }
 
             // if there is a miner who has done its job, pick it up
@@ -167,16 +210,18 @@ public class DeliveryDrone extends Unit {
                     if (rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && loc.isAdjacentTo(hqLoc) && rc.canDropUnit(dir))
                         rc.dropUnit(dir);
                     if (landscapersMissing == 0 && rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && rc.canDropUnit(dir)
-                            && loc.distanceSquaredTo(hqLoc) <= 5) {
+                            && loc.distanceSquaredTo(hqLoc) == 5) {
                         boolean nearbyNetGun = false;
                         boolean nearbyMiner = false;
+                        boolean nearbyDesignSchool = false;
                         for (RobotInfo bot : rc.senseNearbyRobots(loc, 2, rc.getTeam())) {
                             if (bot.type == RobotType.NET_GUN || bot.type == RobotType.VAPORATOR) nearbyNetGun = true;
+                            if (bot.type == RobotType.DESIGN_SCHOOL) nearbyDesignSchool = true;
                         }
                         for (RobotInfo bot : rc.senseNearbyRobots(loc, 5, rc.getTeam())) {
                             if (bot.type == RobotType.MINER) nearbyMiner = true;
                         }
-                        if (nearbyNetGun || rc.getRoundNum() > 2000 || !nearbyMiner) rc.dropUnit(dir);
+                        if (!nearbyDesignSchool && (nearbyNetGun || rc.getRoundNum() > 2000 || !nearbyMiner)) rc.dropUnit(dir);
                     }
                 }
                 if (rc.isCurrentlyHoldingUnit()) // didn't succeed in dropping it
@@ -292,7 +337,13 @@ public class DeliveryDrone extends Unit {
             spinUp = false;
         if (!spinUp && !rc.onTheMap(currentLoc.add(dirToHQ.rotateLeft())))
             spinUp = true;
-        
+        int nearbyDrones = 0; // friend or foe
+        for (RobotInfo bot : rc.senseNearbyRobots()) {
+            if (bot.type == RobotType.DELIVERY_DRONE)
+                nearbyDrones ++;
+        }
+        if (nearbyDrones >= 8 && !(rc.isCurrentlyHoldingUnit()))
+            tryMove(dirToHQ); // tighter orbit now that we have many drones
         if (spinUp) {
             tryMove(dirToHQ.rotateRight());
             tryMove(dirToHQ.rotateRight().rotateRight());

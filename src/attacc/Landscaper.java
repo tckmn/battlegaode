@@ -106,7 +106,8 @@ public class Landscaper extends Unit {
         for (MapLocation loc : locsToElevate) {
             if (loc.isAdjacentTo(currentLoc)) {
                 int height = rc.senseElevation(loc);
-                if (height > minHeight + 3) {
+                RobotInfo robot = rc.senseRobotAtLocation(loc);
+                if (height > minHeight + 3 && (robot == null || robot.type != RobotType.LANDSCAPER)) {
                     nothingAdjacent = false;
                     Direction dir = currentLoc.directionTo(loc);
                     if (rc.canDigDirt(dir))
@@ -225,7 +226,7 @@ public class Landscaper extends Unit {
 
                 // if still not adjacent to HQ, try to move in random direction
                 if (!currentLoc.isAdjacentTo(hqLoc)) {
-                    nav.goTo(wallLocations.get(0));
+                    nav.goTo(wallLocations.get(0), true);
                     return;
                 }
             }
@@ -284,7 +285,7 @@ public class Landscaper extends Unit {
         // if a distance of >= 8 from HQ, get closer
         // in particular, don't stand in corners since these get sniped by drones
         if (currentLoc.distanceSquaredTo(hqLoc) >= 8) {
-            nav.goTo(hqLoc);
+            nav.goTo(hqLoc, true);
             return;
         }
 
