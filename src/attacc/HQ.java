@@ -4,6 +4,9 @@ import battlecode.common.*;
 public class HQ extends Shooter {
     int minersBuilt = 0;
     int hqMessageNumber = comms.hqMessageNumber;
+    int blockchainSabotages = 0;
+    boolean sabotagedFromNearbyEnemy = false;
+    boolean sabotagedPreviousTurn = false;
 
     public HQ(RobotController r) throws GameActionException {
         super(r);
@@ -55,5 +58,43 @@ public class HQ extends Shooter {
             }
         }
 
+        if (rc.getRoundNum() >= 2 && rc.getRoundNum() <= 10) {
+            comms.determineEnemyTeam(enemyHQPossibilities);
+            System.out.println("Fighting team " + comms.enemyTeam);
+        }
+
+        // don't sabotage before turn 30 in case things go horribly wrong and we throw exceptions
+        if (rc.getRoundNum() < 30)
+            return;
+
+        boolean hasSabotaged = false;
+        System.out.println(sabotagedPreviousTurn);
+        System.out.println(blockchainSabotages);
+        System.out.println(sabotagedFromNearbyEnemy);
+        System.out.println(rc.senseNearbyRobots(-1, rc.getTeam().opponent()).length);
+
+        if (sabotagedPreviousTurn) {
+            // don't sabotage again this turn
+            sabotagedPreviousTurn = false;
+            return;
+        } else if (rc.getRoundNum() == 50 || blockchainSabotages < 5 && comms.detectEnemyAttackTransmission(hqLoc)) {
+            if (comms.sabotageBlockchain())
+                hasSabotaged = true;
+        }
+        else if (!sabotagedFromNearbyEnemy && rc.senseNearbyRobots(-1, rc.getTeam().opponent()).length != 0) {
+            System.out.println("See nearby enemy - should try to sabotage blockchain");
+            if (comms.sabotageBlockchain()) {
+                sabotagedFromNearbyEnemy = true;
+                hasSabotaged = true;
+            }
+        }
+
+        
+        if (hasSabotaged) {
+            blockchainSabotages ++;
+            sabotagedPreviousTurn = true;
+        } else {
+            sabotagedPreviousTurn = false;
+        }
     }
 }

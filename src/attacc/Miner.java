@@ -16,6 +16,7 @@ public class Miner extends Unit {
     boolean hasRequestedElevator = false;
     int designSchoolTurnBuilt = -1;
     MapLocation nearestEnemyHQPossibility = null;
+    MapLocation enemyHQFromBlockchain = null;
 
     boolean firstMiner = false;
     boolean secondMiner = false;
@@ -39,6 +40,12 @@ public class Miner extends Unit {
 
     public void takeTurn() throws GameActionException {
         super.takeTurn();
+
+        if (rc.getRoundNum() >= 2 && rc.getRoundNum() <= 10) {
+            enemyHQFromBlockchain = comms.determineEnemyTeam(enemyHQPossibilities);
+            System.out.println("Fighting team " + comms.enemyTeam);
+            System.out.println("Enemy HQ probably at " + enemyHQFromBlockchain);
+        }
 
         if (refineryLoc == null && hqLoc != null)
             refineryLoc = hqLoc;
@@ -226,13 +233,17 @@ public class Miner extends Unit {
         if (nearestEnemyHQPossibility == null)
             nearestEnemyHQPossibility = getNearestEnemyHQPossibility();
 
+        // if the other team was nice enough to tell us their HQ location, check that first (assuming it is a valid possibility)
+        if (enemyHQFromBlockchain != null && enemyHQPossibilities.contains(enemyHQFromBlockchain)) {
+            nearestEnemyHQPossibility = enemyHQFromBlockchain;
+        }
+
         // if we can see there is nothing at enemyHQPossiblities.get(0), remove from list
         // otherwise go there
         // we can sense at a distance, so no need to physically walk there just to see that it's empty
-        MapLocation nextTarget = getNearestEnemyHQPossibility();
         boolean notHere;
-        if (rc.canSenseLocation(nextTarget)) {
-            RobotInfo robot = rc.senseRobotAtLocation(nextTarget);
+        if (rc.canSenseLocation(nearestEnemyHQPossibility)) {
+            RobotInfo robot = rc.senseRobotAtLocation(nearestEnemyHQPossibility);
             if (robot == null || !(robot.type == RobotType.HQ && robot.team != rc.getTeam()))
                 notHere = true;
             else
@@ -241,7 +252,7 @@ public class Miner extends Unit {
             notHere = false;
         }
         if (notHere) {
-            enemyHQPossibilities.remove(nextTarget);
+            enemyHQPossibilities.remove(nearestEnemyHQPossibility);
             nearestEnemyHQPossibility = getNearestEnemyHQPossibility();
         }
         
