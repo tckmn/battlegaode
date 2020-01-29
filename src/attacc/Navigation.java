@@ -98,11 +98,16 @@ public class Navigation {
                     minDistanceToTarget = currentLoc.distanceSquaredTo(destination);
                 }
                 MapLocation mapCenter = new MapLocation(rc.getMapWidth()/2, rc.getMapHeight()/2);
-                lastDirMoved = currentLoc.directionTo(mapCenter);
+                lastDirMoved = currentLoc.directionTo(destination);
                 double angleToCenter = Math.atan2(mapCenter.y - currentLoc.y, mapCenter.x - currentLoc.x);
                 double angleToTarget = Math.atan2(destination.y - currentLoc.y, destination.x - currentLoc.x);
                 double difference = (angleToTarget - angleToCenter + 2 * Math.PI) % (2 * Math.PI);
                 turnRight = (difference > Math.PI);
+                if (turnRight)
+                    lastDirMoved = lastDirMoved.rotateLeft().rotateLeft();
+                else
+                    lastDirMoved = lastDirMoved.rotateRight().rotateRight();
+                // if (Math.abs(difference) < Math.PI / 10) turnRight = !turnRight;
                 bugNavTarget = destination;
                 System.out.println(minDistanceToTarget);
             
