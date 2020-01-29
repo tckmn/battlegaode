@@ -8,10 +8,10 @@ public class Communications {
     // state related only to communications should go here
 
     // all messages from our team should start with this so we can tell them apart
-    static final int hqMessageNumber = 18537659;
-    static final int enemyHQMessageNumber = 848415678;
-    static final int soupLocationMessageNumber = 45787456;
-    static final int elevatorMessageNumber = 48944511;
+    static final int hqMessageNumber = 18277659;
+    static final int enemyHQMessageNumber = 878415678;
+    static final int soupLocationMessageNumber = 45786456;
+    static final int elevatorMessageNumber = 48944512;
 
     public Communications(RobotController r) {
         rc = r;
