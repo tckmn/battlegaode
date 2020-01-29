@@ -28,7 +28,7 @@ public class Communications {
                 int [] message = t.getMessage();
                 if(message[0] == hqMessageNumber)
                 {
-                    MapLocation hqLoc = new MapLocation(message[1], message[2]);
+                    MapLocation hqLoc = new MapLocation(~message[1], ~message[2]);
                     System.out.println("Found HQ location");
                     return(hqLoc);
                 }
@@ -78,8 +78,8 @@ public class Communications {
         message[0] = elevatorMessageNumber;
         int counter = 1;
         for (MapLocation loc : locsToElevate) {
-            message[counter++] = loc.x;
-            message[counter++] = loc.y;
+            message[counter++] = ~loc.x;
+            message[counter++] = ~loc.y;
         }
         if (rc.canSubmitTransaction(message, 1)) {
             rc.submitTransaction(message, 1);
@@ -96,14 +96,14 @@ public class Communications {
                 if(message[0] == elevatorMessageNumber)
                 {
                     if (message[3] == -10) {
-                        MapLocation [] returnValue = {new MapLocation(message[1], message[2])};
+                        MapLocation [] returnValue = {new MapLocation(~message[1], ~message[2])};
                         return returnValue;
                     } else if (message[5] == -10) {
-                        MapLocation [] returnValue = {new MapLocation(message[1], message[2]), new MapLocation(message[3], message[4])};
+                        MapLocation [] returnValue = {new MapLocation(~message[1], ~message[2]), new MapLocation(~message[3], ~message[4])};
                         return returnValue;
                     } else {
-                        MapLocation [] returnValue = {new MapLocation(message[1], message[2]), new MapLocation(message[3], message[4]),
-                            new MapLocation(message[5], message[6])};
+                        MapLocation [] returnValue = {new MapLocation(~message[1], ~message[2]), new MapLocation(~message[3], ~message[4]),
+                            new MapLocation(~message[5], ~message[6])};
                         return returnValue;
                     }
                 }

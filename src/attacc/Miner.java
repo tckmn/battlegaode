@@ -487,8 +487,8 @@ public class Miner extends Unit {
 
         checkIfStuck();
 
-        if (targetLoc != null){
-            nav.goTo(targetLoc);
+        if (targetLoc != null && nav.goTo(targetLoc)){
+            
         }
         // disintegrate if in the way of defensive wall
         // TODO: also make sure there is landscaper nearby

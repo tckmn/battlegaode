@@ -19,8 +19,8 @@ public class HQ extends Shooter {
             MapLocation loc = rc.getLocation();
             int [] message = new int[7];
             message[0] = hqMessageNumber;
-            message[1] = loc.x;
-            message[2] = loc.y;
+            message[1] = ~loc.x;
+            message[2] = ~loc.y;
             for (int i = 3; i < 7; i ++) message[i] = 0;
             if (rc.canSubmitTransaction(message, 1))
                 rc.submitTransaction(message, 1);
