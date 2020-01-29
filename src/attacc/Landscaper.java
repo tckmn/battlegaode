@@ -118,7 +118,7 @@ public class Landscaper extends Unit {
         if (enemyHQ == null) runLandscaperProtecc();
         else if (!rc.getLocation().isAdjacentTo(enemyHQ)) {
             buryEnemyBuilding();
-            nav.goTo(enemyHQ);
+            nav.goTo(enemyHQ, true); //avoid bug nav here, this is usually bad
             if (rc.isReady() && currentDir != null) rc.digDirt(currentDir.opposite());
         }
 
