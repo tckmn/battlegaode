@@ -69,7 +69,7 @@ public class Miner extends Unit {
             proteccMode = proteccMode || (rc.getRoundNum() >= proteccRound
                     || rc.getTeamSoup() >= 200 && (canSenseEnemy(RobotType.LANDSCAPER)
                     || (rc.getRoundNum() >= attaccRound && rc.getTeamSoup() + rc.getRoundNum() * earlyProtecc >= proteccRound * earlyProtecc)));
-        if (firstMiner)
+        if (firstMiner && (rc.getRoundNum() < proteccRound || enemyHQ != null)) // just get soup after turn 200 unless found enemy HQ
             minerAttacc();
         // conditions for defense:
         // * round number >= proteccRound (250)
@@ -425,7 +425,7 @@ public class Miner extends Unit {
         System.out.println("Current soup carrying: " + rc.getSoupCarrying());
         // if adjacent to HQ and many landscapers nearby, get away from HQ so landscapers can move in
         // move into water if necessary to get out of the way
-        if (rc.getRoundNum() > proteccRound && rc.getLocation().distanceSquaredTo(hqLoc) <= 8) {
+        if (rc.getRoundNum() > proteccRound && rc.getLocation().distanceSquaredTo(hqLoc) <= 2) {
             int landscaperCount = 0;
             for (RobotInfo robot : nearbyBots)
                 if (robot.type == RobotType.LANDSCAPER && robot.getTeam() == rc.getTeam())
@@ -443,9 +443,11 @@ public class Miner extends Unit {
 
         for (Direction dir : Util.directions)
         {
-            if (rc.getSoupCarrying() >= 98) tryRefine(dir);
+            if (rc.getSoupCarrying() >= 98)
+                if (tryRefine(dir))
+                    targetLoc = null;
             if (tryMine(dir)) lastSoupMined = rc.getLocation().add(dir);
-            tryRefine(dir);
+            if (tryRefine(dir)) targetLoc = null;
         }
         
 
@@ -453,7 +455,7 @@ public class Miner extends Unit {
         if (rc.getLocation().isAdjacentTo(hqLoc) && hqLoc.equals(targetLoc))
             targetLoc = null;
         // if target loc no longer has soup, set target loc to null
-        if (targetLoc != null && !(targetLoc.equals(hqLoc)) && rc.canSenseLocation(targetLoc)
+        if (targetLoc != null && !(targetLoc.equals(hqLoc) || targetLoc.equals(refineryLoc)) && rc.canSenseLocation(targetLoc)
             && rc.senseSoup(targetLoc) == 0)
             targetLoc = null;
         // also zero out lastSoupMined when empty
@@ -483,14 +485,14 @@ public class Miner extends Unit {
             targetLoc = soupLoc;
         }
 
+        checkIfStuck();
+
         if (targetLoc != null){
             nav.goTo(targetLoc);
         }
-        checkIfStuck();
-
         // disintegrate if in the way of defensive wall
         // TODO: also make sure there is landscaper nearby
-        if (isStuck && rc.getRoundNum() > emergencyProteccRound-5 && (rc.getSoupCarrying() == 0 || rc.getRoundNum() >= 1210)
+        else if (isStuck && rc.getRoundNum() > emergencyProteccRound-5 && (rc.getSoupCarrying() == 0 || rc.getRoundNum() >= 1210)
                 && (rc.getLocation().isAdjacentTo(hqLoc) 
                 || (rc.getLocation().distanceSquaredTo(hqLoc) <= 8 && rc.senseElevation(rc.getLocation()) >= ledgeHeight))) {
             System.out.println("Stuck and in the way -- probably providing negative utility to team");
@@ -505,11 +507,8 @@ public class Miner extends Unit {
                 || nav.tryMove(dirAwayFromHQ.rotateLeft().rotateLeft()) || nav.tryMove(dirAwayFromHQ.rotateRight().rotateRight())))
                 rc.disintegrate();
         }
-
-
-
         // if it can't find soup, go to last location where it found soup (if it exists) or move randomly
-        if (lastSoupMined != null) {
+        else if (lastSoupMined != null) {
             System.out.println("Going to last soup mined");
             nav.goTo(lastSoupMined);
         } else {
