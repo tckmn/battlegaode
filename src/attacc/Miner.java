@@ -13,6 +13,7 @@ public class Miner extends Unit {
     boolean hasBuiltRefinery = false;
     boolean hasTransmittedEnemyHQLocs = false;
     boolean hasBuiltNetGun = false;
+    boolean hasBuiltVaporator = false;
     boolean hasRequestedElevator = false;
     int designSchoolTurnBuilt = -1;
     MapLocation nearestEnemyHQPossibility = null;
@@ -355,7 +356,8 @@ public class Miner extends Unit {
                     MapLocation newLoc = currentLoc.add(dir);
                     if (rc.canSenseLocation(newLoc)) {
                         RobotInfo robotAtNewLoc = rc.senseRobotAtLocation(newLoc);
-                        if (robotAtNewLoc != null && robotAtNewLoc.type == RobotType.NET_GUN && robotAtNewLoc.team == rc.getTeam())
+                        if (robotAtNewLoc != null && (robotAtNewLoc.type == RobotType.NET_GUN || robotAtNewLoc.type == RobotType.VAPORATOR)
+                                && robotAtNewLoc.team == rc.getTeam())
                             hasBuiltDefensiveNetGun = true;
                         int newElevation = rc.senseElevation(newLoc);
                         if (newElevation >= ledgeHeight && robotAtNewLoc == null && Math.abs(newElevation - rc.senseElevation(currentLoc)) <= 3)
@@ -363,10 +365,19 @@ public class Miner extends Unit {
                                 placeForNetGun = newLoc;
                     }
                 }
+                // first "net gun" built should actually be a vaporator (to improve late-game economy) unless turn count is >900 or so
+                if (rc.getRoundNum() > 1000)
+                    hasBuiltVaporator = true;
                 System.out.println("Trying to build things at location " + placeForNetGun);
                 if (placeForNetGun != null) {
-                    hasBuiltDefensiveNetGun = hasBuiltDefensiveNetGun || tryBuild(RobotType.NET_GUN, currentLoc.directionTo(placeForNetGun));
-                    if (hasBuiltDefensiveNetGun) {
+                    if (!hasBuiltVaporator) {
+                        if (tryBuild(RobotType.VAPORATOR, currentLoc.directionTo(placeForNetGun))) {
+                            hasBuiltDefensiveNetGun = true;
+                            hasBuiltVaporator = true;
+                        }
+                    } else if (!hasBuiltDefensiveNetGun) {
+                        hasBuiltDefensiveNetGun = hasBuiltDefensiveNetGun || tryBuild(RobotType.NET_GUN, currentLoc.directionTo(placeForNetGun));
+                    } else {
                         hasBuiltFulfillmentCenter = hasBuiltFulfillmentCenter 
                             || tryBuild(RobotType.FULFILLMENT_CENTER, currentLoc.directionTo(placeForNetGun));
                         tryBuild(RobotType.DESIGN_SCHOOL, currentLoc.directionTo(placeForNetGun));

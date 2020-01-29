@@ -25,18 +25,22 @@ public class DesignSchool extends Building {
 
         // defensive design school should lose race conditions by delaying everything one turn
         if (rc.getLocation().distanceSquaredTo(hqLoc) <= 16 && soupPreviousTurn < 150
-            || (landscapersBuilt >= 8 && soupPreviousTurn < 250)
-            || (landscapersBuilt >= 12 && soupPreviousTurn < 1000)) {
-            soupPreviousTurn = rc.getTeamSoup();
+            || (landscapersBuilt >= 8 && soupPreviousTurn <= 500)
+            || (landscapersBuilt >= 12 && soupPreviousTurn <= 1000)) {
             // if you see at least one net gun already, then you can build more landscapers as long as soupPreviousTurn >= 150
-            RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
+            RobotInfo [] nearbyRobots = rc.senseNearbyRobots(-1, rc.getTeam());
             boolean nearbyNetGun = false;
             for (RobotInfo robot : nearbyRobots) {
-                if (robot.type == RobotType.NET_GUN && robot.team == rc.getTeam())
+                if (robot.type == RobotType.NET_GUN || robot.type == RobotType.FULFILLMENT_CENTER
+                        || robot.type == RobotType.VAPORATOR || robot.type == RobotType.DELIVERY_DRONE)
                     nearbyNetGun = true;
             }
-            if ((!nearbyNetGun || soupPreviousTurn <= 150) || (landscapersBuilt >= 12 && soupPreviousTurn < 1000))
+            if (!nearbyNetGun || soupPreviousTurn <= 150 || (landscapersBuilt >= 12 && soupPreviousTurn < 1000)) {
+                soupPreviousTurn = rc.getTeamSoup();
                 return;
+            } else {
+                soupPreviousTurn = rc.getTeamSoup();
+            }
         }
 
         // if we see an enemy drone but no friendly net gun, stop building landscapers

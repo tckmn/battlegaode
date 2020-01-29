@@ -112,7 +112,8 @@ public class DeliveryDrone extends Unit {
                             RobotInfo robotNextToMiner = rc.senseRobotAtLocation(locAdjacentToMiner);
                             if (robotNextToMiner != null && robotNextToMiner.team == rc.getTeam()
                                     && (robotNextToMiner.type == RobotType.NET_GUN || robotNextToMiner.type == RobotType.FULFILLMENT_CENTER
-                                    || robotNextToMiner.type == RobotType.LANDSCAPER || robotNextToMiner.type == RobotType.DESIGN_SCHOOL))
+                                    || robotNextToMiner.type == RobotType.LANDSCAPER || robotNextToMiner.type == RobotType.DESIGN_SCHOOL
+                                    || robotNextToMiner.type == RobotType.VAPORATOR))
                                 occupiedSquaresNearMiner ++;
                         }
                     }
@@ -166,12 +167,16 @@ public class DeliveryDrone extends Unit {
                     if (rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && loc.isAdjacentTo(hqLoc) && rc.canDropUnit(dir))
                         rc.dropUnit(dir);
                     if (landscapersMissing == 0 && rc.canSenseLocation(loc) && !rc.senseFlooding(loc) && rc.canDropUnit(dir)
-                            && loc.distanceSquaredTo(hqLoc) <= 5 && rc.senseElevation(loc) >= ledgeHeight) {
+                            && loc.distanceSquaredTo(hqLoc) <= 5) {
                         boolean nearbyNetGun = false;
+                        boolean nearbyMiner = false;
                         for (RobotInfo bot : rc.senseNearbyRobots(loc, 2, rc.getTeam())) {
-                            if (bot.type == RobotType.NET_GUN) nearbyNetGun = true;
+                            if (bot.type == RobotType.NET_GUN || bot.type == RobotType.VAPORATOR) nearbyNetGun = true;
                         }
-                        if (nearbyNetGun || rc.getRoundNum() > 2000) rc.dropUnit(dir);
+                        for (RobotInfo bot : rc.senseNearbyRobots(loc, 5, rc.getTeam())) {
+                            if (bot.type == RobotType.MINER) nearbyMiner = true;
+                        }
+                        if (nearbyNetGun || rc.getRoundNum() > 2000 || !nearbyMiner) rc.dropUnit(dir);
                     }
                 }
                 if (rc.isCurrentlyHoldingUnit()) // didn't succeed in dropping it
