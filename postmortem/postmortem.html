@@ -18,12 +18,20 @@ In this year's competition, teams play against each other on a grid of size rang
 <h3> Burying Buildings in Dirt </h3>
 Arguably the most important unit in the game is the landscaper, which can pick up dirt from any square adjacent to itself and then deposit that dirt on another adjacent square.  Piling a sufficient amount of dirt on a building will crush it, so burying the enemy buildings (and removing dirt from your own buildings) is the primary method of attack.  In particular, depositing 50 dirt on the enemy HQ (in excess of what they managed to remove) will automatically win the game.
 
+<center>
+  <figure>
+    <img src="bury.png" alt="Burying enemy HQ">
+    <figcaption> The red team (our group's submission) burying the HQ of the blue team (the sample player released by teh devs).  The landscapers are the units with shovels.  The enemy HQ is already underneath 49 dirt; it will be buried next turn.</figcaption>
+  </figure>
+</center>
+
 <h3> Flooding </h3>
 Each tile on the board has a starting elevation, which is changed whenever landscapers add or remove dirt.  Over the course of the game, the global water level rises, slowly at first, but exponentially faster as the game progresses.  At the end of each round, the floodwaters spread from water tiles to any adjacent tile whose elevation is lower than the global water level.  The HQ can be defended (although not indefinitely) by surrounding it with a high wall and hoping the opponent's HQ floods first.
 
 <center>
   <figure>
-    <img src="wall.png" alt="Defensive wall" id="reponsive-image">
+    <img src="wall.png" alt="Defensive wall">
+    <figcaption>The red team and blue team both constructing defensive walls to prepare for the rising flood.  The red team's wall is higher since red has more landscapers dedicated to wall construction.  Note that the map is almost completely flooded at this point.</figcaption>
   </figure>
 </center>
 
