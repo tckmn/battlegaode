@@ -11,4 +11,9 @@ img {
   max-width: 1000px;
 }
 
+.toc {
+	background: #AFEEEE;
+	font-family: candara;
+}
+
 .clear-floated    { clear: both; height: 1px; font-size: 1px; line-height: 1px; padding: 0; margin: 0; }
